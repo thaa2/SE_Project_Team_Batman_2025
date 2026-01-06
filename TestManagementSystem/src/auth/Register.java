@@ -1,6 +1,9 @@
 package auth;
 
+import java.sql.SQLException;
 import java.util.Scanner;
+
+import util.DataStore;
 
 public class Register extends User {
 
@@ -68,7 +71,7 @@ public class Register extends User {
             System.out.print("Enter Birth Date (DD/MM/YY): ");
             birthDate = input.nextLine();
 
-            if (birthDate.matches("\\d{2}/\\d{2}/\\d{2}")) {
+            if (birthDate.matches("\\d{2}/\\d{2}/\\d{4}")) {
                 break;
             } else {
                 System.out.println("Format must be DD/MM/YY.");
@@ -104,6 +107,7 @@ public class Register extends User {
         }
 
         // -------- ROLE --------
+        String selectedRole = "";
         while (true) {
             System.out.println("Select Role:");
             System.out.println("1. Student");
@@ -117,10 +121,12 @@ public class Register extends User {
                 if (choice == 1) {
                     user = new Student(name, age, gender, birthDate, email, password);
                     user.displayInfo();
+                    selectedRole = "STUDENT";
                     break;
                 } else if (choice == 2) {
                     user = new Educator(name, age, gender, birthDate, email, password);
                     user.displayInfo();
+                    selectedRole = "EDUCATOR";
                     break;
                 } else {
                     System.out.println("Please enter 1 or 2.");
@@ -132,6 +138,14 @@ public class Register extends User {
         }
 
         input.close();
+        DataStore dataStore = new DataStore();
+        // dataStore.connect();
+        try {
+            dataStore.InsertUser(name, age, gender, birthDate, email, password, selectedRole);
+        } catch (SQLException e) {
+            System.out.println("Error inserting user: " + e.getMessage());
+        }        
+        // dataStore.InsertUser(name, age, gender, birthDate, email, password, "STUDENT");
     }
 
     @Override
