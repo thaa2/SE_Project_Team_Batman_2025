@@ -10,12 +10,14 @@ public abstract class User {
     protected int age;
     protected Role role;
 
+    public User (){
+        
+    }
     // Constructor
-    public User(int userId, String name, int age , String gender , String birthDate ,String email, String password, Role role) {
+    public User( String name, int age , String gender , String birthDate ,String email, String password, Role role) {
         this.age = age ;
         this.gender = gender ;
         this.birthDate = birthDate ;
-        this.userId = userId;
         this.name = name;
         this.email = email;
         this.password = password;

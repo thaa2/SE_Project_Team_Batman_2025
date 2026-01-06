@@ -2,8 +2,8 @@ package auth;
 
 public class Educator extends User {
 
-    public Educator(int userId, String name,int age, String gender , String birthDate,  String email, String password) {
-        super(userId, name, age, gender, birthDate , email , password, Role.EDUCATOR);
+    public Educator( String name,int age, String gender , String birthDate,  String email, String password) {
+        super( name, age, gender, birthDate , email , password, Role.EDUCATOR);
     }
 
     @Override
