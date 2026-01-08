@@ -53,8 +53,6 @@ public class Login {
         } else {
             System.out.println(" Invalid email or password.");
         }
-
-        input.close();
     }
 }
  

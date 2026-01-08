@@ -8,7 +8,6 @@ public class Main {
 
     public static void main(String[] args) {
         Scanner input = new Scanner(System.in);
-
         while (true) {
             System.out.println("\n*** Welcome to our System ***");
             System.out.println("1. Login");
