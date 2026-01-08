@@ -12,7 +12,7 @@ public class Main {
         Scanner input = new Scanner(System.in);
         while (true) {
             int choice;
-            System.out.println("***Welcome to our System***");
+            System.out.println("===Welcome to our System===");
             System.out.println("1. Login\n2. Register\n3. Exit");
             System.out.print("Enter your choice: ");
             
