@@ -9,8 +9,8 @@ import java.sql.DriverManager;
 // import java.sql.Statement;
 // import auth.*;
 public class DataStore {
-    static final String url = "jdbc:sqlite:D:\\ITC\\Year 2\\Introduction to software Enginerring\\Project_ISE\\SE_Project_Team_Batman_2025\\TestManagementSystem\\School.db";
-    
+    static final String url = "jdbc:sqlite:C:/ITC/School.db";
+
     public static Connection connect(){
         Connection connection = null;
         try {
@@ -44,4 +44,25 @@ public class DataStore {
             System.out.println("Error inserting user: " + e.getMessage());
         }
     }
+    public String login(String email, String password) {
+    String sql = "SELECT password, role FROM user WHERE email = ?";
+
+    try (Connection connection = DriverManager.getConnection(url);
+         PreparedStatement pstmt = connection.prepareStatement(sql)) {
+
+        pstmt.setString(1, email);
+        var rs = pstmt.executeQuery();
+
+        if (rs.next()) {
+            if (rs.getString("password").equals(password)) {
+                return rs.getString("role"); // SUCCESS
+            }
+        }
+
+    } catch (SQLException e) {
+        System.out.println("Login error: " + e.getMessage());
+    }
+    return null; // FAILED
+}
+
 }
