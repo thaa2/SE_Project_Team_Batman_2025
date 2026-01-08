@@ -1,34 +1,45 @@
 package main;
 
 import java.util.Scanner;
-
+// import java.util.concurrent.TimeUnit;
 // import auth.Educator;
-import auth.Register;
+import auth.*;
 // import auth.Student;
 // import auth.User;
 
 public class Main {
     public static void main (String[]args){
         Scanner input = new Scanner(System.in);
-        System.out.println("***Welcome to our System***");
-        System.out.println("1. Login\n2. Register");
-        System.out.print("Enter your choice: ");
-        int choice = input.nextInt();
-
         while (true) {
+            int choice;
+            System.out.println("***Welcome to our System***");
+            System.out.println("1. Login\n2. Register\n3. Exit");
+            System.out.print("Enter your choice: ");
+            
+            choice = input.nextInt();
+
+            
             if (choice==2){
                 Register register = new Register();
                 register.registerInfo();
-                break;
+                
             }
             else if (choice==1){
-
+                Login login = new Login();
+                login.loginInfo();
+                
+            }
+            else if (choice==3){
+                System.out.println("Exiting the system. Goodbye!");
+                System.exit(0);
+                break;
             }
             else {
                 System.out.println("Please Enter Number 1 or 2");
-            }
+            }  
+            // input.close();
         }
-        input.close();
+        
        
     }
 }

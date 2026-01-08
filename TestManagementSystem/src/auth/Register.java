@@ -137,7 +137,7 @@ public class Register extends User {
             }
         }
 
-        input.close();
+        // input.close();
         DataStore dataStore = new DataStore();
         // dataStore.connect();
         try {
