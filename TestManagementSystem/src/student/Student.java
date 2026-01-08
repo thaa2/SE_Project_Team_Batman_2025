@@ -1,4 +1,7 @@
-package auth;
+package student;
+
+import auth.Role;
+import auth.User;
 
 public class Student extends User {
 
