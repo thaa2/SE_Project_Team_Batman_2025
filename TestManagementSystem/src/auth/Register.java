@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.util.Scanner;
 
 import educator.Educator;
+import student.Student;
 import util.DataStore;
 
 public class Register extends User {
