@@ -137,9 +137,15 @@ public class Register extends User {
             }
         }
 
-       
+        // input.close();
         DataStore dataStore = new DataStore();
-        dataStore.InsertUser(name, age, gender, birthDate, email, password, selectedRole);
+        // dataStore.connect();
+        try {
+            dataStore.InsertUser(name, age, gender, birthDate, email, password, selectedRole);
+        } catch (SQLException e) {
+            System.out.println("Error inserting user: " + e.getMessage());
+        }        
+        // dataStore.InsertUser(name, age, gender, birthDate, email, password, "STUDENT");
     }
 
     @Override

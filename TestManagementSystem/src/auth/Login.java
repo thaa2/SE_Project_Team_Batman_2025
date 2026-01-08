@@ -34,7 +34,6 @@ public class Login {
         String role = dataStore.login(email, password);
 
         if (role != null) {
-            System.out.println("✅ Login successful!");
             System.out.println("Role: " + role);
 
             // Redirect based on role
