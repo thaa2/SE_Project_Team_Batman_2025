@@ -1,100 +1,56 @@
 package quiz;
 
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-
 public class Question {
-
     private int id;
     private String text;
-    private String[] options; // A-E
+    private String[] options;
     private char correctAnswer;
+    private String questionType;
+    private int numberOfOptions;
 
-    private static final String DB_URL = "jdbc:sqlite:quiz.db";
-
-    // ===== Constructors =====
-    public Question(int id, String text, String[] options, char correctAnswer) {
+    public Question(int id, String text, String[] options, char correctAnswer, int numberOfOptions) {
         this.id = id;
         this.text = text;
         this.options = options;
         this.correctAnswer = Character.toUpperCase(correctAnswer);
+        this.questionType = "MCQ";
+        this.numberOfOptions = Math.max(3, Math.min(5, numberOfOptions));
     }
 
-    public Question(String text, String[] options, char correctAnswer) {
-        this(-1, text, options, correctAnswer);
+    public Question(int id, String text, char correctAnswer) {
+        this.id = id;
+        this.text = text;
+        this.questionType = "TF";
+        this.correctAnswer = Character.toUpperCase(correctAnswer);
+        this.numberOfOptions = 2;
+        this.options = new String[]{"A. True", "B. False"};
     }
 
-    // ===== Getters =====
+    public Question(String text, String[] options, char correctAnswer, int numberOfOptions) {
+        this(-1, text, options, correctAnswer, numberOfOptions);
+    }
+
+    public Question(String text, char correctAnswer) {
+        this(-1, text, correctAnswer);
+    }
+
     public int getId() { return id; }
     public String getText() { return text; }
     public String[] getOptions() { return options; }
     public char getCorrectAnswer() { return correctAnswer; }
-
-    // ===== DB Methods =====
-
-    // Initialize DB table
-    public static void initDB() {
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-             Statement stmt = conn.createStatement()) {
-
-            stmt.executeUpdate("""
-                CREATE TABLE IF NOT EXISTS Questions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    text TEXT NOT NULL,
-                    optionA TEXT NOT NULL,
-                    optionB TEXT NOT NULL,
-                    optionC TEXT NOT NULL,
-                    optionD TEXT NOT NULL,
-                    optionE TEXT NOT NULL,
-                    correctAnswer CHAR(1) NOT NULL
-                )
-            """);
-
-        } catch (SQLException e) {
-            e.printStackTrace();
+    public String getQuestionType() { return questionType; }
+    public int getNumberOfOptions() { return numberOfOptions; }
+    
+    public String getAnswerRange() {
+        if (questionType.equals("TF")) {
+            return "A-B";
+        } else {
+            switch (numberOfOptions) {
+                case 3: return "A-C";
+                case 4: return "A-D";
+                case 5: return "A-E";
+                default: return "A-E";
+            }
         }
     }
-
-    // Save question to DB
-    public void saveToDB() {
-        String sql = "INSERT INTO Questions (text, optionA, optionB, optionC, optionD, optionE, correctAnswer) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, this.text);
-            for (int i = 0; i < 5; i++) pstmt.setString(i + 2, this.options[i]);
-            pstmt.setString(7, String.valueOf(this.correctAnswer));
-
-            pstmt.executeUpdate();
-        } catch (SQLException e) { e.printStackTrace(); }
-    }
-
-    // Retrieve all questions from DB
-    public static List<Question> getAllQuestions() {
-        List<Question> questions = new ArrayList<>();
-        String sql = "SELECT * FROM Questions";
-
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                int id = rs.getInt("id");
-                String text = rs.getString("text");
-                String[] opts = new String[5];
-                opts[0] = "A. " + rs.getString("optionA");
-                opts[1] = "B. " + rs.getString("optionB");
-                opts[2] = "C. " + rs.getString("optionC");
-                opts[3] = "D. " + rs.getString("optionD");
-                opts[4] = "E. " + rs.getString("optionE");
-                char correct = rs.getString("correctAnswer").charAt(0);
-
-                questions.add(new Question(id, text, opts, correct));
-            }
-        } catch (SQLException e) { e.printStackTrace(); }
-
-        return questions;
-    }
 }
-
