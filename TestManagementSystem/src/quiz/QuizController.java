@@ -3,21 +3,18 @@ package quiz;
 import java.util.List;
 import java.util.Scanner;
 
-public class Main {
+public class QuizController {
 
-    public static void main(String[] args) {
+    // ===== EDUCATOR ONLY =====
+    public static void addQuestions(Scanner sc) {
 
-        Scanner sc = new Scanner(System.in);
-
-        // ===== Initialize DB for questions =====
         Question.initDB();
-        QuizService service = new QuizService();
 
-        // ===== Educator adds questions =====
         System.out.print("Do you want to add a new question? (y/n): ");
         String add = sc.nextLine();
 
         while (add.equalsIgnoreCase("y")) {
+
             System.out.print("Enter question text: ");
             String text = sc.nextLine();
 
@@ -37,23 +34,26 @@ public class Main {
             System.out.print("Add another question? (y/n): ");
             add = sc.nextLine();
         }
+    }
 
-        // ===== Student takes quiz =====
+    // ===== STUDENT ONLY =====
+    public static void takeQuiz(Scanner sc) {
+
+        QuizService service = new QuizService();
         List<Question> questions = Question.getAllQuestions();
+
         if (questions.isEmpty()) {
             System.out.println("No questions available!");
             return;
         }
 
-        System.out.print("\nEnter student name: ");
+        System.out.print("Enter student name: ");
         String studentName = sc.nextLine();
 
         Quiz quiz = new Quiz("Quiz from DB");
         for (Question q : questions) quiz.addQuestion(q);
 
         QuizAttempt attempt = new QuizAttempt(studentName, quiz);
-
-        System.out.println("\n--- " + quiz.getTitle() + " ---");
 
         for (Question q : quiz.getQuestions()) {
             System.out.println("\n" + q.getText());
@@ -68,19 +68,8 @@ public class Main {
             attempt.answerQuestion(q.getId(), ans);
         }
 
-        // ===== Grade & save attempt =====
         int score = service.gradeQuiz(attempt);
-
-        System.out.println("\nStudent: " + studentName);
         System.out.println("Score: " + score + "/" + quiz.getQuestions().size());
-
-        // ===== Optional: display student's results from DB =====
-        System.out.print("\nDo you want to see the detailed results? (y/n): ");
-        String view = sc.nextLine();
-        if (view.equalsIgnoreCase("y")) {
-            service.printStudentResults(studentName);
-        }
-
-        sc.close();
     }
 }
+

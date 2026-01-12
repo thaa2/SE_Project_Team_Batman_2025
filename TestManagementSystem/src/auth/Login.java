@@ -7,7 +7,7 @@ import util.DataStore;
 public class Login {
   
 
-    public void loginInfo() {
+    public User loginInfo() {
         Scanner input = new Scanner(System.in);
         DataStore dataStore = new DataStore();
 
@@ -55,6 +55,7 @@ public class Login {
         } else {
             System.out.println(" Invalid email or password.");
         }
+        return null;
     }
 }
  
