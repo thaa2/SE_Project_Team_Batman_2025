@@ -1,4 +1,4 @@
-package SE_project;
+package quiz;
 
 import java.util.Scanner;
 

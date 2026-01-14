@@ -108,7 +108,7 @@ public class QuizService {
     }
     
     // Keep all existing methods below...
-    public int gradeQuiz(QuizAttempt attempt) {
+    public int gradeQuiz(QuizeAttempt attempt) {
         int score = 0;
         for (Question q : attempt.getQuiz().getQuestions()) {
             Character studentAnswer = attempt.getAnswers().get(q.getId());
@@ -121,7 +121,7 @@ public class QuizService {
         return score;
     }
     
-    private void saveAttempt(QuizAttempt attempt) {
+    private void saveAttempt(QuizeAttempt attempt) {
         try (Connection conn = dbManager.getConnection()) {
             conn.setAutoCommit(false);
             
