@@ -23,6 +23,9 @@ public abstract class User {
         this.password = password;
         this.role = role;
     }
+        public Role getRole() {
+        return role;
+    }
 
     // Common methods
     public void login() {
