@@ -1,9 +1,7 @@
 package main;
 
-import java.util.Scanner;
-// import java.util.concurrent.TimeUnit;
-// import auth.Educator;
 import auth.*;
+import java.util.Scanner;
 // import auth.Student;
 // import auth.User;
 

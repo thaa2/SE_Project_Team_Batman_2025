@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
-public class QuizAttempt {
+public class QuizeAttempt {
     private String studentName;
     private Quiz quiz;
     private Map<Integer, Character> answers = new HashMap<>();
@@ -12,7 +12,7 @@ public class QuizAttempt {
     private Scanner scanner;
     private QuizService quizService;
     
-    public QuizAttempt(String studentName, Quiz quiz, Scanner scanner, QuizService quizService) {
+    public QuizeAttempt(String studentName, Quiz quiz, Scanner scanner, QuizService quizService) {
         this.studentName = studentName;
         this.quiz = quiz;
         this.scanner = scanner;
