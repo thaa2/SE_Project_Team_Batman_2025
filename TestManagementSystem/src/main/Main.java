@@ -2,53 +2,55 @@ package main;
 
 import java.util.Scanner;
 import auth.*;
-import quiz.QuizController;
+import quiz.QuizController; // Ensure this is imported
 
 public class Main {
 
     public static void main(String[] args) {
-
         Scanner sc = new Scanner(System.in);
 
         while (true) {
-            System.out.println("\n=== Test Management System ===");
+            System.out.println("\n================================");
+            System.out.println("   TEST MANAGEMENT SYSTEM");
+            System.out.println("================================");
             System.out.println("1. Login");
             System.out.println("2. Register");
             System.out.println("3. Exit");
-            System.out.print("Choose: ");
+            System.out.print("Choose an option: ");
 
+            // Input validation
             if (!sc.hasNextInt()) {
-                sc.next();
+                System.out.println("Invalid input. Please enter a number.");
+                sc.next(); 
                 continue;
             }
 
             int choice = sc.nextInt();
-            sc.nextLine(); // clear buffer
+            sc.nextLine(); // Clear the newline buffer
 
             if (choice == 1) {
-
+                // 1. Handle Login
                 Login login = new Login();
-                User user = (User) login.loginInfo(); // MUST return User
+                User user = (User) login.loginInfo(); 
 
-                if (user == null) continue;
-
-                // ===== ROLE-BASED ACCESS =====
-                if (user.getRole() == Role.EDUCATOR) {
-                    System.out.println("\nWelcome Educator!");
-                    QuizController.addQuestions(sc);
-
-                } else if (user.getRole() == Role.STUDENT) {
-                    System.out.println("\nWelcome Student!");
-                    QuizController.takeQuiz(sc);
+                if (user != null) {
+                    System.out.println("\nLogin Successful!");
+                    // 2. Direct to the Quiz Module
+                    // The QuizController handles the role-based menu (Student vs Educator)
+                    QuizController.runQuizModule(sc, user);
+                } else {
+                    System.out.println("Login failed. Please try again.");
                 }
 
-            } 
-            else if (choice == 2) {
+            } else if (choice == 2) {
+                // Handle Registration
                 new Register().registerInfo();
-            } 
-            else if (choice == 3) {
-                System.out.println("Goodbye!");
+                
+            } else if (choice == 3) {
+                System.out.println("Exiting System. Goodbye!");
                 break;
+            } else {
+                System.out.println("Invalid choice. Please select 1, 2, or 3.");
             }
         }
 
