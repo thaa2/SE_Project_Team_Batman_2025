@@ -81,4 +81,9 @@ public class DataStore {
             }
         }
     }
+
+    public String getNameByEmail(String email) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getNameByEmail'");
+    }
 }

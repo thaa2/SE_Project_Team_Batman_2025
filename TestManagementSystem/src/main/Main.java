@@ -1,43 +1,57 @@
 package main;
 
-import auth.*;
 import java.util.Scanner;
-// import auth.Student;
-// import auth.User;
+import auth.*;
+import quiz.QuizController;
 
 public class Main {
-    public static void main (String[]args){
-        Scanner input = new Scanner(System.in);
-        while (true) {
-            int choice;
-            System.out.println("===Welcome to our System===");
-            System.out.println("1. Login\n2. Register\n3. Exit");
-            System.out.print("Enter your choice: ");
-            
-            choice = input.nextInt();
 
-            
-            if (choice==2){
-                Register register = new Register();
-                register.registerInfo();
-                
+    public static void main(String[] args) {
+
+        Scanner sc = new Scanner(System.in);
+
+        while (true) {
+            System.out.println("\n=== Test Management System ===");
+            System.out.println("1. Login");
+            System.out.println("2. Register");
+            System.out.println("3. Exit");
+            System.out.print("Choose: ");
+
+            if (!sc.hasNextInt()) {
+                sc.next();
+                continue;
             }
-            else if (choice==1){
+
+            int choice = sc.nextInt();
+            sc.nextLine(); // clear buffer
+
+            if (choice == 1) {
+
                 Login login = new Login();
-                login.loginInfo();
-                
-            }
-            else if (choice==3){
-                System.out.println("Exiting the system. Goodbye!");
-                System.exit(0);
+                User user = (User) login.loginInfo(); // MUST return User
+
+                if (user == null) continue;
+
+                // ===== ROLE-BASED ACCESS =====
+                if (user.getRole() == Role.EDUCATOR) {
+                    System.out.println("\nWelcome Educator!");
+                    QuizController.addQuestions(sc);
+
+                } else if (user.getRole() == Role.STUDENT) {
+                    System.out.println("\nWelcome Student!");
+                    QuizController.takeQuiz(sc);
+                }
+
+            } 
+            else if (choice == 2) {
+                new Register().registerInfo();
+            } 
+            else if (choice == 3) {
+                System.out.println("Goodbye!");
                 break;
             }
-            else {
-                System.out.println("Please Enter Number 1 or 2");
-            }  
-            // input.close();
         }
-        
-       
+
+        sc.close();
     }
 }

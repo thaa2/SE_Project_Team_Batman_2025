@@ -40,16 +40,13 @@ public class Login {
             switch (role) {
                 case "STUDENT":
                     System.out.println("Welcome Student Dashboard");
-                    new student.StudentDashboard().showMenu();
                     break;
 
                 case "EDUCATOR":
                     System.out.println("Welcome Educator Dashboard");
-                    new educator.EducatorDashboard().showMenu();    
                     break;
 
                 default:
-                    System.out.println("Access denied.");
                     System.out.println("Unknown role.");
             }
         } else {
