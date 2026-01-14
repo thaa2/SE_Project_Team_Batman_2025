@@ -15,6 +15,8 @@ public class Question {
         this.correctAnswer = Character.toUpperCase(correctAnswer);
         this.questionType = "MCQ";
         this.numberOfOptions = Math.max(3, Math.min(5, numberOfOptions));
+        this.questionType = "MCQ";
+        this.numberOfOptions = Math.max(3, Math.min(5, numberOfOptions));
     }
 
     public Question(int id, String text, char correctAnswer) {
@@ -38,6 +40,8 @@ public class Question {
     public String getText() { return text; }
     public String[] getOptions() { return options; }
     public char getCorrectAnswer() { return correctAnswer; }
+    
+    
     public String getQuestionType() { return questionType; }
     public int getNumberOfOptions() { return numberOfOptions; }
     
@@ -52,5 +56,5 @@ public class Question {
                 default: return "A-E";
             }
         }
+        }
     }
-}
