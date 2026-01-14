@@ -10,7 +10,7 @@ public class Quiz {
     public Quiz(String title) { 
         this.title = title; 
     }
-
+  
     public void addQuestion(Question question) { 
         questions.add(question); 
     }
