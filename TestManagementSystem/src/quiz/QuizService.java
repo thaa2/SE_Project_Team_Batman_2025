@@ -11,6 +11,69 @@ public class QuizService {
         this.dbManager = DatabaseManager.getInstance();
     }
     
+    // ============ DELETE QUESTION METHODS ============
+    
+    // Delete a question by ID
+    public boolean deleteQuestion(int questionId) {
+        String sql = "DELETE FROM Questions WHERE id = ?";
+        
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, questionId);
+            int rowsAffected = pstmt.executeUpdate();
+            
+            if (rowsAffected > 0) {
+                // Also delete any related quiz results
+                deleteQuizResultsForQuestion(questionId);
+                return true;
+            }
+            
+        } catch (SQLException e) { 
+            System.err.println("✗ Error deleting question: " + e.getMessage());
+        }
+        
+        return false;
+    }
+    
+    // Helper method to delete quiz results for a question
+    private void deleteQuizResultsForQuestion(int questionId) {
+        String sql = "DELETE FROM QuizResults WHERE questionId = ?";
+        
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, questionId);
+            pstmt.executeUpdate();
+            
+        } catch (SQLException e) { 
+            System.err.println("Note: Could not clean up related quiz results: " + e.getMessage());
+        }
+    }
+    
+    // Check if question exists
+    public boolean questionExists(int questionId) {
+        String sql = "SELECT COUNT(*) as count FROM Questions WHERE id = ?";
+        
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, questionId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt("count") > 0;
+            }
+            
+        } catch (SQLException e) { 
+            System.err.println("✗ Error checking question: " + e.getMessage());
+        }
+        
+        return false;
+    }
+    
+    // ============ EXISTING METHODS ============
+    
     // Add this NEW METHOD to show all questions
     public void printAllQuestions() {
         List<Question> questions = getAllQuestions();
@@ -108,7 +171,7 @@ public class QuizService {
     }
     
     // Keep all existing methods below...
-    public int gradeQuiz(QuizeAttempt attempt) {
+    public int gradeQuiz(QuizAttempt attempt) {
         int score = 0;
         for (Question q : attempt.getQuiz().getQuestions()) {
             Character studentAnswer = attempt.getAnswers().get(q.getId());
@@ -121,7 +184,7 @@ public class QuizService {
         return score;
     }
     
-    private void saveAttempt(QuizeAttempt attempt) {
+    private void saveAttempt(QuizAttempt attempt) {
         try (Connection conn = dbManager.getConnection()) {
             conn.setAutoCommit(false);
             
@@ -243,7 +306,7 @@ public class QuizService {
                 }
             }
             
-        } catch (SQLException e) {
+        } catch (SQLException e) { 
             System.err.println("✗ Error loading questions: " + e.getMessage());
         }
         
