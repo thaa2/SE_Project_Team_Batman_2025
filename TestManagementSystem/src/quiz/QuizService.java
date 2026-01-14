@@ -243,7 +243,7 @@ public class QuizService {
                 }
             }
             
-        } catch (SQLException e) { 
+        } catch (SQLException e) {
             System.err.println("✗ Error loading questions: " + e.getMessage());
         }
         
