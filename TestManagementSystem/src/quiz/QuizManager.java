@@ -9,56 +9,9 @@ public class QuizManager {
         this.quizService = quizService;
     }
     
-    // ============ DELETE QUESTION METHOD ============
-    
-    public void deleteQuestionOperation(Scanner sc) {
-        System.out.println("\n=== DELETE QUESTION ===");
-        
-        // First show all questions
-        quizService.printAllQuestions();
-        
-        if (quizService.getAllQuestions().isEmpty()) {
-            System.out.println("No questions available to delete.");
-            return;
-        }
-        
-        System.out.print("\nEnter the ID of the question to delete (0 to cancel): ");
-        try {
-            int questionId = Integer.parseInt(sc.nextLine());
-            
-            if (questionId == 0) {
-                System.out.println("Operation cancelled.");
-                return;
-            }
-            
-            // Check if question exists
-            if (!quizService.questionExists(questionId)) {
-                System.out.println("✗ Question ID " + questionId + " does not exist!");
-                return;
-            }
-            
-            System.out.print("Are you sure you want to delete question ID " + questionId + "? (yes/no): ");
-            String confirmation = sc.nextLine().toLowerCase();
-            
-            if (confirmation.equals("yes") || confirmation.equals("y")) {
-                boolean success = quizService.deleteQuestion(questionId);
-                if (success) {
-                    System.out.println("✓ Question deleted successfully!");
-                } else {
-                    System.out.println("✗ Failed to delete question.");
-                }
-            } else {
-                System.out.println("Operation cancelled.");
-            }
-            
-        } catch (NumberFormatException e) {
-            System.out.println("Invalid input! Please enter a valid number.");
-        }
-    }
-    
-    // ============ EXISTING METHODS ============
-    
-    public void addQuestions(Scanner sc) {
+    // ============ UPDATED ADD QUESTIONS METHOD ============
+    // Added educatorId parameter here
+    public void addQuestions(Scanner sc, int educatorId) {
         System.out.println("\n=== ADD NEW QUESTIONS ===");
         
         while (true) {
@@ -70,9 +23,9 @@ public class QuizManager {
             String typeChoice = sc.nextLine();
             
             if (typeChoice.equals("1")) {
-                addMCQQuestion(sc);
+                addMCQQuestion(sc, educatorId); // Pass educatorId
             } else if (typeChoice.equals("2")) {
-                addTrueFalseQuestion(sc);
+                addTrueFalseQuestion(sc, educatorId); // Pass educatorId
             } else {
                 System.out.println("Invalid choice!");
                 continue;
@@ -86,125 +39,90 @@ public class QuizManager {
         }
     }
     
-    private void addMCQQuestion(Scanner sc) {
+    private void addMCQQuestion(Scanner sc, int educatorId) {
         System.out.println("\n--- Add Multiple Choice Question ---");
         
-        // Get question text (cannot be empty)
         String text;
         while (true) {
             System.out.print("Enter question text: ");
             text = sc.nextLine().trim();
-            if (!text.isEmpty()) {
-                break;
-            }
-            System.out.println("Question text cannot be empty! Please enter a question.");
+            if (!text.isEmpty()) break;
+            System.out.println("Question text cannot be empty!");
         }
         
-        // Get number of options
         int numOptions;
         while (true) {
             System.out.print("How many options? (3-5): ");
-            String input = sc.nextLine();
             try {
-                numOptions = Integer.parseInt(input);
-                if (numOptions >= 3 && numOptions <= 5) {
-                    break;
-                } else {
-                    System.out.println("Please enter a number between 3 and 5.");
-                }
+                numOptions = Integer.parseInt(sc.nextLine());
+                if (numOptions >= 3 && numOptions <= 5) break;
+                else System.out.println("Please enter a number between 3 and 5.");
             } catch (NumberFormatException e) {
-                System.out.println("Invalid input! Please enter a number (3-5).");
+                System.out.println("Invalid input!");
             }
         }
         
-        // Get options (cannot be empty)
         String[] options = new String[numOptions];
-        char optionChar = 'A';
         for (int i = 0; i < numOptions; i++) {
             while (true) {
-                System.out.print("Option " + optionChar + ": ");
+                System.out.print("Option " + (char)('A' + i) + ": ");
                 String option = sc.nextLine().trim();
                 if (!option.isEmpty()) {
-                    // Remove any existing "A. " prefix if user accidentally includes it
-                    if (option.length() > 3 && option.substring(0, 3).matches("[A-E]\\.\\s")) {
-                        option = option.substring(3);
-                    }
                     options[i] = option;
                     break;
                 }
-                System.out.println("Option cannot be empty! Please enter option " + optionChar + ".");
+                System.out.println("Option cannot be empty!");
             }
-            optionChar++;
         }
 
-        // Get correct answer
         char correct;
         while (true) {
             System.out.print("Correct answer (" + getAnswerRange(numOptions) + "): ");
             String input = sc.nextLine().trim().toUpperCase();
-            
             if (input.length() > 0) {
                 char answer = input.charAt(0);
-                char maxOption = (char) ('A' + numOptions - 1);
-                
-                if (answer >= 'A' && answer <= maxOption) {
+                if (answer >= 'A' && answer <= (char)('A' + numOptions - 1)) {
                     correct = answer;
                     break;
                 }
             }
-            System.out.println("Invalid input! Please enter " + getAnswerRange(numOptions));
+            System.out.println("Invalid input!");
         }
 
-        // Create question and save
+        // STEP 4 FIX: Pass the educatorId to the save method
         Question question = new Question(text, options, correct, numOptions);
-        quizService.saveQuestion(question);
+        quizService.saveQuestion(question, educatorId); 
         System.out.println("✓ MCQ question added successfully!");
     }
     
-    private void addTrueFalseQuestion(Scanner sc) {
+    private void addTrueFalseQuestion(Scanner sc, int educatorId) {
         System.out.println("\n--- Add True/False Question ---");
         
-        // Get question text (cannot be empty)
         String text;
         while (true) {
             System.out.print("Enter question text: ");
             text = sc.nextLine().trim();
-            if (!text.isEmpty()) {
-                break;
-            }
-            System.out.println("Question text cannot be empty! Please enter a question.");
+            if (!text.isEmpty()) break;
         }
 
-        // Get correct answer
         char correct;
         while (true) {
             System.out.print("Correct answer (T for True, F for False): ");
             String input = sc.nextLine().trim().toUpperCase();
-            
-            if (input.length() > 0) {
-                if (input.equals("T") || input.equals("TRUE")) {
-                    correct = 'A';
-                    break;
-                } else if (input.equals("F") || input.equals("FALSE")) {
-                    correct = 'B';
-                    break;
-                }
+            if (input.equals("T") || input.equals("TRUE")) {
+                correct = 'A';
+                break;
+            } else if (input.equals("F") || input.equals("FALSE")) {
+                correct = 'B';
+                break;
             }
-            System.out.println("Invalid input! Please enter T or F.");
+            System.out.println("Invalid input!");
         }
 
+        // STEP 4 FIX: Pass the educatorId to the save method
         Question question = new Question(text, correct);
-        quizService.saveQuestion(question);
+        quizService.saveQuestion(question, educatorId); 
         System.out.println("✓ True/False question added successfully!");
-    }
-    
-    private String getAnswerRange(int numOptions) {
-        switch (numOptions) {
-            case 3: return "A, B, or C";
-            case 4: return "A, B, C, or D";
-            case 5: return "A, B, C, D, or E";
-            default: return "A-C";
-        }
     }
     
     public void attemptQuiz(Scanner sc) {
@@ -225,7 +143,7 @@ public class QuizManager {
             quiz.addQuestion(q);
         }
         
-        QuizeAttempt attempt = new QuizeAttempt(studentName, quiz, sc, quizService);
+        QuizAttempt attempt = new QuizAttempt(studentName, quiz, sc, quizService);
         attempt.executeAttempt();
     }
     
@@ -270,4 +188,13 @@ public class QuizManager {
         
         quizService.printStudentResults(studentName);
     }
+    private String getAnswerRange(int numOptions) {
+    return switch (numOptions) {
+        case 2 -> "A or B";
+        case 3 -> "A, B, or C";
+        case 4 -> "A, B, C, or D";
+        case 5 -> "A, B, C, D, or E";
+        default -> "A-" + (char)('A' + numOptions - 1);
+    };
+}
 }

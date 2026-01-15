@@ -13,7 +13,8 @@ public abstract class User {
     public User() {}
 
     // Ensure the parameter order matches what Student sends in super()
-    public User(String name, int age, String gender, String birthDate, String email, String password, Role role) {
+    public User(int userId, String name, int age, String gender, String birthDate, String email, String password, Role role) {
+        this.userId = userId;
         this.name = name;
         this.age = age;
         this.gender = gender;

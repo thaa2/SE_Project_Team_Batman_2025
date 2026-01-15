@@ -1,39 +1,87 @@
 package util;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-//import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.DriverManager;
-// import auth.*;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import auth.User;
+import educator.Educator;
+import quiz.Question;
+import student.Student;
+
 public class DataStore {
     static final String url = "jdbc:sqlite:C:\\ITC\\DATABASE\\School.db";
+
+    public void createTables() {
+    String sqlQuestions = "CREATE TABLE IF NOT EXISTS Questions (" +
+                          "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                          "text TEXT NOT NULL, " +
+                          "optionA TEXT, optionB TEXT, optionC TEXT, optionD TEXT, optionE TEXT, " +
+                          "correctAnswer TEXT, " +
+                          "questionType TEXT, " +
+                          "numberOfOptions INTEGER, " +
+                          "educator_id INTEGER, " +
+                          "FOREIGN KEY(educator_id) REFERENCES user(uers_id))";
+
+    String sqlScores = "CREATE TABLE IF NOT EXISTS QuizScores (" +
+                       "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                       "studentName TEXT, " +
+                       "totalScore INTEGER, " +
+                       "totalQuestions INTEGER, " +
+                       "percentage REAL, " +
+                       "attemptDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP)";
+
+    try (Connection conn = connect();
+         Statement stmt = conn.createStatement()) {
+        stmt.execute(sqlQuestions);
+        stmt.execute(sqlScores);
+        System.out.println("Database tables checked/created successfully.");
+    } catch (SQLException e) {
+        System.out.println("Error creating tables: " + e.getMessage());
+    }
+}
     
-    public static Connection connect(){
+    public static Connection connect() {
         Connection connection = null;
         try {
-            try {
-                Class.forName("org.sqlite.JDBC");
-            } catch (ClassNotFoundException cnfe) {
-                System.out.println("SQLite JDBC driver not found. Add sqlite-jdbc jar to classpath (e.g., lib/sqlite-jdbc.jar)");
-                return null;
-            }
+            Class.forName("org.sqlite.JDBC");
             connection = DriverManager.getConnection(url);
-            System.out.println("Connection to SQLite has been established.");
+        } catch (ClassNotFoundException e) {
+            System.out.println("SQLite Driver not found: " + e.getMessage());
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            System.out.println("Connection error: " + e.getMessage());
         }
         return connection;
     }
 
+    public List<Question> getQuestionsByEducator(int teacherId) {
+        List<Question> questions = new ArrayList<>();
+        // Note: Ensure your Questions table column is named educator_id
+        String sql = "SELECT * FROM Questions WHERE educator_id = ?";
+        
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, teacherId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                int id = rs.getInt("id");
+                String text = rs.getString("text");
+                char correct = rs.getString("correctAnswer").charAt(0);
+                questions.add(new Question(id, text, correct)); 
+            }
+        } catch (SQLException e) { 
+            System.out.println("Error fetching educator questions: " + e.getMessage()); 
+        }
+        return questions;
+    }
+
     public void InsertUser(String name, int age, String gender, String birthDate, String email, String password, String role) {
         String sql = "INSERT INTO user (name, age, gender, birthDate, email, password, role) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        Connection connection = connect();
-        if (connection == null) {
-            System.out.println("Cannot insert user: no DB connection (SQLite driver missing or connection failed).");
-            return;
-        }
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+        try (Connection connection = connect();
+             PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            
             pstmt.setString(1, name);
             pstmt.setInt(2, age);
             pstmt.setString(3, gender);
@@ -45,45 +93,69 @@ public class DataStore {
             System.out.println("User inserted successfully!");
         } catch (SQLException e) {
             System.out.println("Error inserting user: " + e.getMessage());
-        } finally {
-            try {
-                connection.close();
-            } catch (SQLException ignored) {
-            }
         }
     }
-    public String login(String email, String password) {
-        String sql = "SELECT role FROM user WHERE email = ? AND password = ?";
-        Connection conn = connect();
-        if (conn == null) {
-            System.out.println("Cannot perform login: no DB connection (SQLite driver missing or connection failed).");
-            return null;
-        }
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+    public User getAuthenticatedUser(String email, String password) {
+        String sql = "SELECT * FROM user WHERE email = ? AND password = ?";
+        
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
             pstmt.setString(1, email);
             pstmt.setString(2, password);
-            var rs = pstmt.executeQuery();
+            ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                System.out.println("Login successful.");
-                return rs.getString("role");
-            } else {
-                System.out.println("Invalid email or password.");
-                return null;
+                // FIX: Match your DB column name 'uers_id' found in your screenshot
+                int id = rs.getInt("uers_id"); 
+                String name = rs.getString("name");
+                int age = rs.getInt("age");
+                String gender = rs.getString("gender");
+                String birthDate = rs.getString("birthDate");
+                String roleStr = rs.getString("role");
+
+                if (roleStr.equalsIgnoreCase("EDUCATOR")) {
+                    return new Educator(id, name, age, gender, birthDate, email, password);
+                } else {
+                    return new Student(id, name, age, gender, birthDate, email, password);
+                }
             }
         } catch (SQLException e) {
-            System.out.println("Login error: " + e.getMessage());
-            return null;
-        } finally {
-            try {
-                conn.close();
-            } catch (SQLException ignored) {
-            }
+            System.out.println("Login database error: " + e.getMessage());
         }
+        return null;
     }
 
-    public String getNameByEmail(String email) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getNameByEmail'");
+    // ADD THIS METHOD: This fixes the "printEducatorList" error in your QuizService screenshot
+    public void printEducatorList() {
+        String sql = "SELECT uers_id, name FROM user WHERE role = 'EDUCATOR'";
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            System.out.println("\n--- Available Educators ---");
+            while (rs.next()) {
+                System.out.println("ID: " + rs.getInt("uers_id") + " | Name: " + rs.getString("name"));
+            }
+        } catch (SQLException e) {
+            System.out.println("Error printing educators: " + e.getMessage());
+        }
     }
+    public void insertQuestion(Question question, int educatorId) {
+    String sql = "INSERT INTO Questions (text, correctAnswer, educator_id) VALUES (?, ?, ?)";
+    
+    try (Connection conn = connect();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        
+        pstmt.setString(1, question.getText());
+        pstmt.setString(2, String.valueOf(question.getCorrectAnswer()));
+        pstmt.setInt(3, educatorId); // Links the question to the logged-in user
+        
+        pstmt.executeUpdate();
+        System.out.println("✓ Question saved to database by educator ID: " + educatorId);
+    } catch (SQLException e) {
+        System.out.println("Error saving question: " + e.getMessage());
+    }
+}
 }

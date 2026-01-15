@@ -72,6 +72,8 @@ public class Register {
             System.out.println("Password must be >= 8 characters and include a number.");
         }
 
+        // ... (previous validation code remains the same)
+
         // 7. ROLE & OBJECT CREATION
         String selectedRole = "";
         while (true) {
@@ -86,24 +88,27 @@ public class Register {
                 
                 User user; 
                 if (choice == 1) {
-                    user = new Student(name, age, gender, birthDate, email, password);
+                    // Pass 0 as the ID because the DB hasn't generated one yet
+                    user = new Student(0, name, age, gender, birthDate, email, password);
                     selectedRole = "STUDENT";
                     user.displayInfo();
                     break;
                 } else if (choice == 2) {
-                    user = new Educator(name, age, gender, birthDate, email, password);
+                    // Pass 0 as the ID
+                    user = new Educator(0, name, age, gender, birthDate, email, password);
                     selectedRole = "EDUCATOR";
                     user.displayInfo();
                     break;
                 }
             }
             System.out.println("Invalid choice. Enter 1 or 2.");
-            input.nextLine();
+            // Remove the extra input.nextLine() here to avoid double-skipping
         }
 
         // 8. SAVE TO DATABASE
         DataStore dataStore = new DataStore();
         dataStore.InsertUser(name, age, gender, birthDate, email, password, selectedRole);
         System.out.println("Registration Successful!");
+
     }
 }

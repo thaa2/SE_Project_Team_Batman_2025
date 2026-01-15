@@ -21,6 +21,23 @@ public class DatabaseManager {
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
             
+            // Inside DatabaseManager.java -> initializeDatabase() method
+            stmt.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS Questions (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "text TEXT NOT NULL," +
+                "optionA TEXT," +
+                "optionB TEXT," +
+                "optionC TEXT," +
+                "optionD TEXT," +
+                "optionE TEXT," +
+                "correctAnswer CHAR(1) NOT NULL," +
+                "questionType TEXT NOT NULL," +
+                "numberOfOptions INTEGER," +
+                "educator_id INTEGER," + // <--- ADD THIS LINE
+                "createdDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
+                ")"
+            );
             // Create Questions table
             stmt.executeUpdate(
                 "CREATE TABLE IF NOT EXISTS Questions (" +

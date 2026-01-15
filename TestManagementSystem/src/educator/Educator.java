@@ -4,9 +4,9 @@ import auth.Role;
 import auth.User;
 
 public class Educator extends User {
-    public Educator(String name, int age, String gender, String birthDate, String email, String password) {
+    public Educator(int userId, String name, int age, String gender, String birthDate, String email, String password) {
         // Must match your User constructor exactly
-        super(name, age, gender, birthDate, email, password, Role.EDUCATOR);
+        super(userId, name, age, gender, birthDate, email, password, Role.EDUCATOR);
     }
 
     @Override

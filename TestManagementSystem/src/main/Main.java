@@ -3,12 +3,14 @@ package main;
 import java.util.Scanner;
 import auth.*;
 import quiz.QuizController; // Ensure this is imported
+import util.DataStore;
 
 public class Main {
 
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-
+        DataStore ds = new DataStore();
+        ds.createTables(); // This ensures 'Questions' table exists before anyone tries to load it
         while (true) {
             System.out.println("\n================================");
             System.out.println("   TEST MANAGEMENT SYSTEM");

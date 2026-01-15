@@ -6,10 +6,10 @@ import auth.User;
 public class Student extends User {
 
     // The constructor must accept all parameters needed to satisfy the parent 'User' class
-    public Student(String name, int age, String gender, String birthDate, String email, String password) {
+    public Student(int userId, String name, int age, String gender, String birthDate, String email, String password) {
         // 'super' must be the first line. 
         // We pass 'Role.STUDENT' automatically so the user doesn't have to type it during login/reg.
-        super(name, age, gender, birthDate, email, password, Role.STUDENT);
+        super(userId,  name, age, gender, birthDate, email, password, Role.STUDENT);
     }
 
     @Override

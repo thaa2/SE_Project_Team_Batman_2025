@@ -37,7 +37,10 @@ public class QuizController {
                     case 1 -> quizManager.viewAllStudentsResults(sc); // Logic would filter for current user
                     case 2 -> quizManager.attemptQuiz(sc);
                     case 3 -> {
-                        if (user.getRole() == Role.EDUCATOR) quizManager.addQuestions(sc);
+                        if (user.getRole() == Role.EDUCATOR) {
+                    // Pass the user's ID from the current session
+                         quizManager.addQuestions(sc, user.getUserId()); 
+                     }
                         else System.out.println("Access Denied.");
                     }
                     case 4 -> {
