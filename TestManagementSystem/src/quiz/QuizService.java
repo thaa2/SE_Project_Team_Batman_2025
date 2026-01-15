@@ -108,16 +108,16 @@ public class QuizService {
     }
     
     // Keep all existing methods below...
-    public int gradeQuiz(QuizeAttempt attempt) {
+    public int gradeQuiz(QuizAttempt attempt) {
         int score = 0;
         for (Question q : attempt.getQuiz().getQuestions()) {
-            Character studentAnswer = attempt.getAnswers().get(q.getId());
+            Character studentAnswer = quizAttempt.getAnswers().get(q.getId());
             if (studentAnswer != null && studentAnswer == q.getCorrectAnswer()) {
                 score++;
             }
         }
         attempt.setScore(score);
-        saveAttempt(attempt);
+        saveAttempt(quizAttempt);
         return score;
     }
     
@@ -395,5 +395,10 @@ public class QuizService {
         } catch (SQLException e) { 
             System.err.println("✗ Error retrieving students: " + e.getMessage());
         }
+    }
+
+    public int gradeQuiz(QuizAttempt attempt) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'gradeQuiz'");
     }
 }
