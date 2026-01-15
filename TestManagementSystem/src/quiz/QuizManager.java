@@ -225,7 +225,7 @@ public class QuizManager {
             quiz.addQuestion(q);
         }
         
-        QuizAttempt attempt = new QuizAttempt(studentName, quiz, sc, quizService);
+        QuizeAttempt attempt = new QuizeAttempt(studentName, quiz, sc, quizService);
         attempt.executeAttempt();
     }
     
