@@ -3,24 +3,24 @@ package quiz;
 import java.util.Scanner;
 import auth.User;
 import auth.Role;
+import util.DataStore; // Import DataStore to show teacher list
 
 public class QuizController {
 
     public static void runQuizModule(Scanner sc, User user) {
         try {
-            DatabaseManager.getInstance();
+            // Note: If DatabaseManager.getInstance() is just for connection, 
+            // ensure it doesn't conflict with DataStore.connect()
             QuizService service = new QuizService();
             QuizManager quizManager = new QuizManager(service);
+            DataStore ds = new DataStore(); // Added to access displayAvailableTeachers
             
             boolean exitModule = false;
             while (!exitModule) {
                 System.out.println("\n=== QUIZ SYSTEM (" + user.getRole() + ") ===");
-                
-                // Common options for everyone
                 System.out.println("1. View My Results");
                 System.out.println("2. Attempt Quiz");
 
-                // Restricted options for Educators only
                 if (user.getRole() == Role.EDUCATOR) {
                     System.out.println("3. Create new Quiz");
                     System.out.println("4. View All Students Results");
@@ -34,14 +34,20 @@ public class QuizController {
                 int choice = Integer.parseInt(input);
                 
                 switch (choice) {
-                    case 1 -> quizManager.viewAllStudentsResults(sc); // Logic would filter for current user
-                    case 2 -> quizManager.attemptQuiz(sc);
+                    case 1 -> quizManager.viewAllStudentsResults(sc);
+                    case 2 -> {
+                        // NEW LOGIC: Ask for Teacher ID
+                        ds.displayAvailableTeachers(); 
+                        System.out.print("\nEnter the Teacher ID to take their quiz: ");
+                        int teacherId = Integer.parseInt(sc.nextLine());
+                        
+                        // Pass the teacherId to your attemptQuiz method
+                        quizManager.attemptQuizByTeacher(sc, teacherId, user.getName());
+                    }
                     case 3 -> {
                         if (user.getRole() == Role.EDUCATOR) {
-                    // Pass the user's ID from the current session
-                         quizManager.addQuestions(sc, user.getUserId()); 
-                     }
-                        else System.out.println("Access Denied.");
+                             quizManager.addQuestions(sc, user.getUserId()); 
+                        } else System.out.println("Access Denied.");
                     }
                     case 4 -> {
                         if (user.getRole() == Role.EDUCATOR) quizManager.viewAllStudentsResults(sc);

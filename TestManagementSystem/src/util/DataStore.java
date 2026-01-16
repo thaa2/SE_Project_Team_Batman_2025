@@ -40,6 +40,23 @@ public class DataStore {
         System.out.println("Error creating tables: " + e.getMessage());
     }
 }
+public void displayAvailableTeachers() {
+    // We use uers_id to match your database typo in the screenshot
+    String sql = "SELECT uers_id, name FROM user WHERE role = 'EDUCATOR'";
+    try (Connection conn = connect();
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery(sql)) {
+        
+        System.out.println("\n--- Available Teachers ---");
+        System.out.printf("%-5s | %-20s\n", "ID", "Name");
+        while (rs.next()) {
+            System.out.printf("%-5d | %-20s\n", rs.getInt("uers_id"), rs.getString("name"));
+        }
+    } catch (SQLException e) {
+        System.out.println("Error displaying teachers: " + e.getMessage());
+    }
+}
+
     
     public static Connection connect() {
         Connection connection = null;
@@ -76,7 +93,6 @@ public class DataStore {
         }
         return questions;
     }
-
     public void InsertUser(String name, int age, String gender, String birthDate, String email, String password, String role) {
         String sql = "INSERT INTO user (name, age, gender, birthDate, email, password, role) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection connection = connect();

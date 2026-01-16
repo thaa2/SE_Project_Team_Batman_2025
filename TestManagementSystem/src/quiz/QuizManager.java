@@ -1,5 +1,6 @@
 package quiz;
 
+import java.util.List;
 import java.util.Scanner;
 
 public class QuizManager {
@@ -8,6 +9,17 @@ public class QuizManager {
     public QuizManager(QuizService quizService) {
         this.quizService = quizService;
     }
+    public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) {
+    List<Question> teacherQuestions = quizService.getQuestionsByTeacher(teacherId);
+    if (teacherQuestions.isEmpty()) {
+        System.out.println("This teacher has no questions available yet.");
+        return;
+    }
+
+    System.out.println("\n--- Starting Quiz (Teacher ID: " + teacherId + ") ---");
+    // This calls your existing quiz logic
+    attemptQuiz(sc); 
+}
     
     // ============ UPDATED ADD QUESTIONS METHOD ============
     // Added educatorId parameter here
@@ -197,4 +209,5 @@ public class QuizManager {
         default -> "A-" + (char)('A' + numOptions - 1);
     };
 }
+
 }

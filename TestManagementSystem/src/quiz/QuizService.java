@@ -9,6 +9,38 @@ public class QuizService {
     
     private DataStore dataStore = new DataStore();
 
+// Add these inside public class QuizService
+
+public void printAllStudents() {
+    String sql = "SELECT DISTINCT studentName FROM QuizScores";
+    try (Connection conn = DataStore.connect();
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery(sql)) {
+        System.out.println("\n--- Students who have taken quizzes ---");
+        while (rs.next()) {
+            System.out.println("- " + rs.getString("studentName"));
+        }
+    } catch (SQLException e) {
+        System.err.println("Error loading students: " + e.getMessage());
+    }
+}
+
+public void printStudentResults(String studentName) {
+    String sql = "SELECT totalScore, totalQuestions, percentage, attemptDate FROM QuizScores WHERE studentName = ?";
+    try (Connection conn = DataStore.connect();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setString(1, studentName);
+        ResultSet rs = pstmt.executeQuery();
+        System.out.println("Date | Score | Total | %");
+        while (rs.next()) {
+            System.out.printf("%s | %d | %d | %.1f%%\n", 
+                rs.getString("attemptDate"), rs.getInt("totalScore"), 
+                rs.getInt("totalQuestions"), rs.getDouble("percentage"));
+        }
+    } catch (SQLException e) {
+        System.err.println("Error loading results: " + e.getMessage());
+    }
+}
     public QuizService() {
         // Constructor remains simple as we use DataStore for connections
     }
@@ -87,6 +119,10 @@ public class QuizService {
     }
 
     // ============ 3. FETCHING QUESTIONS ============
+    public List<Question> getQuestionsByTeacher(int teacherId) {
+        return dataStore.getQuestionsByEducator(teacherId);
+    }
+
     public List<Question> getAllQuestions() {
         List<Question> questions = new ArrayList<>();
         String sql = "SELECT * FROM Questions ORDER BY id";
