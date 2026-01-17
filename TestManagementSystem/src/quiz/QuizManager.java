@@ -1,7 +1,14 @@
 package quiz;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Scanner;
+import java.sql.Statement;
+
+import util.DataStore;
 
 public class QuizManager {
     private final QuizService quizService;
@@ -9,16 +16,26 @@ public class QuizManager {
     public QuizManager(QuizService quizService) {
         this.quizService = quizService;
     }
-    public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) {
+// Inside QuizManager.java
+
+public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) {
+    // 1. Get ONLY this teacher's questions
     List<Question> teacherQuestions = quizService.getQuestionsByTeacher(teacherId);
+
     if (teacherQuestions.isEmpty()) {
         System.out.println("This teacher has no questions available yet.");
         return;
     }
 
-    System.out.println("\n--- Starting Quiz (Teacher ID: " + teacherId + ") ---");
-    // This calls your existing quiz logic
-    attemptQuiz(sc); 
+    // 2. Build a Quiz object using ONLY those questions
+    Quiz quiz = new Quiz("Teacher's Quiz");
+    for (Question q : teacherQuestions) {
+        quiz.addQuestion(q);
+    }
+
+    // 3. Start the attempt with THIS filtered quiz
+    QuizAttempt attempt = new QuizAttempt(studentName, quiz, sc, quizService);
+    attempt.executeAttempt();
 }
     
     // ============ UPDATED ADD QUESTIONS METHOD ============
@@ -186,6 +203,39 @@ public class QuizManager {
             System.out.println("Returning to main menu...");
         }
     }
+    // Add to QuizService.java
+
+public void printAllStudents() {
+    String sql = "SELECT DISTINCT studentName FROM QuizScores";
+    try (Connection conn = DataStore.connect();
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery(sql)) {
+        System.out.println("\n--- Students who have taken quizzes ---");
+        while (rs.next()) {
+            System.out.println("- " + rs.getString("studentName"));
+        }
+    } catch (SQLException e) {
+        System.err.println("Error: " + e.getMessage());
+    }
+}
+
+public void printStudentResults(String studentName) {
+    String sql = "SELECT totalScore, totalQuestions, percentage FROM QuizScores WHERE studentName = ?";
+    try (Connection conn = DataStore.connect();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setString(1, studentName);
+        ResultSet rs = pstmt.executeQuery();
+        System.out.println("\nScore | Total | Percentage");
+        while (rs.next()) {
+            System.out.printf("%d     | %d     | %.1f%%\n", 
+                rs.getInt("totalScore"), 
+                rs.getInt("totalQuestions"), 
+                rs.getDouble("percentage"));
+        }
+    } catch (SQLException e) {
+        System.err.println("Error: " + e.getMessage());
+    }
+}
     
     // Keep existing method for backward compatibility
     public void viewResults(Scanner sc) {
