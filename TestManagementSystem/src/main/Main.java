@@ -1,45 +1,61 @@
 package main;
 
 import java.util.Scanner;
-// import java.util.concurrent.TimeUnit;
-// import auth.Educator;
 import auth.*;
-// import auth.Student;
-// import auth.User;
+import quiz.QuizController; // Ensure this is imported
+import util.DataStore;
 
 public class Main {
-    public static void main (String[]args){
-        Scanner input = new Scanner(System.in);
-        while (true) {
-            int choice;
-            System.out.println("===Welcome to our System===");
-            System.out.println("1. Login\n2. Register\n3. Exit");
-            System.out.print("Enter your choice: ");
-            
-            choice = input.nextInt();
 
-            
-            if (choice==2){
-                Register register = new Register();
-                register.registerInfo();
-                
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        DataStore ds = new DataStore();
+        ds.createTables(); // This ensures 'Questions' table exists before anyone tries to load it
+        while (true) {
+            System.out.println("\n================================");
+            System.out.println("   TEST MANAGEMENT SYSTEM");
+            System.out.println("================================");
+            System.out.println("1. Login");
+            System.out.println("2. Register");
+            System.out.println("3. Exit");
+            System.out.print("Choose an option: ");
+
+            // Input validation
+            if (!sc.hasNextInt()) {
+                System.out.println("Invalid input. Please enter a number.");
+                sc.next(); 
+                continue;
             }
-            else if (choice==1){
+
+            int choice = sc.nextInt();
+            sc.nextLine(); // Clear the newline buffer
+
+            if (choice == 1) {
+                // 1. Handle Login
                 Login login = new Login();
-                login.loginInfo();
+                User user = (User) login.loginInfo(); 
+
+                if (user != null) {
+                    System.out.println("\nLogin Successful!");
+                    // 2. Direct to the Quiz Module
+                    // The QuizController handles the role-based menu (Student vs Educator)
+                    QuizController.runQuizModule(sc, user);
+                } else {
+                    System.out.println("Login failed. Please try again.");
+                }
+
+            } else if (choice == 2) {
+                // Handle Registration
+                new Register().registerInfo();
                 
-            }
-            else if (choice==3){
-                System.out.println("Exiting the system. Goodbye!");
-                System.exit(0);
+            } else if (choice == 3) {
+                System.out.println("Exiting System. Goodbye!");
                 break;
+            } else {
+                System.out.println("Invalid choice. Please select 1, 2, or 3.");
             }
-            else {
-                System.out.println("Please Enter Number 1 or 2");
-            }  
-            // input.close();
         }
-        
-       
+
+        sc.close();
     }
 }

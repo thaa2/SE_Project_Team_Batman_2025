@@ -1,24 +1,25 @@
 package auth;
 
 import java.util.Scanner;
-
 import util.DataStore;
+import student.Student;
+import educator.Educator;
 
 public class Login {
-  
 
-    public void loginInfo() {
+    public User loginInfo() {
         Scanner input = new Scanner(System.in);
         DataStore dataStore = new DataStore();
 
+        String email = "";
+        String password = "";
+
         System.out.println("=== Test Management System Login ===");
 
-        // -------- EMAIL --------
-        String email;
+        // -------- EMAIL INPUT --------
         while (true) {
             System.out.print("Enter Email: ");
             email = input.nextLine();
-
             if (email.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
                 break;
             } else {
@@ -26,35 +27,21 @@ public class Login {
             }
         }
 
-        // -------- PASSWORD --------
+        // -------- PASSWORD INPUT --------
         System.out.print("Enter Password: ");
-        String password = input.nextLine();
+        password = input.nextLine();
 
-        // -------- LOGIN CHECK --------
-        String role = dataStore.login(email, password);
+        // -------- DATABASE FETCH --------
+        // Use the new method we discussed that returns a full User object
+        User authenticatedUser = dataStore.getAuthenticatedUser(email, password);
 
-        if (role != null) {
-            System.out.println("Role: " + role);
-
-            // Redirect based on role
-            switch (role) {
-                case "STUDENT":
-                    System.out.println("Welcome Student Dashboard");
-                    new student.StudentDashboard().showMenu();
-                    break;
-
-                case "EDUCATOR":
-                    System.out.println("Welcome Educator Dashboard");
-                    new educator.EducatorDashboard().showMenu();    
-                    break;
-
-                default:
-                    System.out.println("Access denied.");
-                    System.out.println("Unknown role.");
-            }
+        if (authenticatedUser != null) {
+            System.out.println("Login successful.");
+            System.out.println("Welcome back, " + authenticatedUser.getName() + "!");
+            return authenticatedUser;
         } else {
-            System.out.println(" Invalid email or password.");
+            System.out.println("Invalid email or password.");
+            return null; 
         }
     }
 }
- 
