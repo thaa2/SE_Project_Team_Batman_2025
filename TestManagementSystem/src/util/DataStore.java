@@ -195,4 +195,47 @@ public void insertQuestion(Question question, int educatorId, int courseId) {
         System.out.println("Error saving question: " + e.getMessage());
     }
 }
+public List<String[]> getStudentResults(String studentName) {
+    List<String[]> results = new ArrayList<>();
+    // Note: Column names must match your sqlScores definition in createTables()
+    String sql = "SELECT attemptDate, totalScore, totalQuestions, percentage FROM QuizScores WHERE studentName = ?";
+    
+    try (Connection conn = connect();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        
+        pstmt.setString(1, studentName);
+        ResultSet rs = pstmt.executeQuery();
+        
+        while (rs.next()) {
+            results.add(new String[]{
+                rs.getString("attemptDate"),
+                String.valueOf(rs.getInt("totalScore")),
+                String.valueOf(rs.getInt("totalQuestions")),
+                String.format("%.2f", rs.getDouble("percentage"))
+            });
+        }
+    } catch (SQLException e) {
+        System.out.println("Error fetching results: " + e.getMessage());
+    }
+    return results;
+}
+public void saveQuizResult(String name, int score, int total) {
+    double percentage = (double) score / total * 100;
+    // Ensure these columns match your QuizScores table: studentName, totalScore, totalQuestions, percentage
+    String sql = "INSERT INTO QuizScores (studentName, totalScore, totalQuestions, percentage) VALUES (?, ?, ?, ?)";
+
+    try (Connection conn = connect();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        
+        pstmt.setString(1, name);
+        pstmt.setInt(2, score);
+        pstmt.setInt(3, total);
+        pstmt.setDouble(4, percentage);
+        
+        pstmt.executeUpdate();
+        System.out.println("✓ Result saved to database.");
+    } catch (SQLException e) {
+        System.out.println("Error saving result: " + e.getMessage());
+    }
+}
 }

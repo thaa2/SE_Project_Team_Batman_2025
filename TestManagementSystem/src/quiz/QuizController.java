@@ -38,7 +38,7 @@ public class QuizController {
                 int choice = Integer.parseInt(input);
                 
                 switch (choice) {
-                    case 1 -> quizManager.viewResults(sc);
+                    case 1 -> quizManager.viewResults(sc, user.getName());
                     case 2 -> {
                         // NEW LOGIC: Ask for Teacher ID
                         ds.displayAvailableTeachers(); 
