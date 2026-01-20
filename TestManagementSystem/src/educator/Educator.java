@@ -9,7 +9,7 @@ public class Educator extends User {
         super(userId, name, age, gender, birthDate, email, password, Role.EDUCATOR);
     }
 
-    @Override
+    // @Override
     public void displayInfo() {
         System.out.println("Educator Name: " + name);
         System.out.println("Educator Email: " + email);

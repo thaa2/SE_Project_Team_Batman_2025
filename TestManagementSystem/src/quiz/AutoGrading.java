@@ -2,6 +2,7 @@ package quiz;
 
 import java.util.*;
 import java.io.*;
+import util.DataStore;
 
 public class AutoGrading {
 
@@ -56,10 +57,11 @@ public class AutoGrading {
     }
 
     
-     //Appends the result to a text file.
+    // Saves the result to both file and database
     public static void saveResult(String name, int score, int total) {
         double percentage = ((double) score / total) * 100;
         
+        // Save to text file
         try (FileWriter fw = new FileWriter("quiz_results.txt", true);
              BufferedWriter bw = new BufferedWriter(fw);
              PrintWriter out = new PrintWriter(bw)) {
@@ -70,5 +72,9 @@ public class AutoGrading {
         } catch (IOException e) {
             System.err.println("Error saving to file: " + e.getMessage());
         }
+        
+        // Save to database
+        DataStore ds = new DataStore();
+        ds.saveQuizResult(name, score, total);
     }
 }

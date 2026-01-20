@@ -173,7 +173,7 @@ public void printStudentResults(String studentName) {
         try (Connection conn = DataStore.connect()) {
             conn.setAutoCommit(false);
             try {
-                String sql1 = "INSERT INTO QuizResults (studentName, questionId, selectedAnswer) VALUES (?, ?, ?)";
+                String sql1 = "INSERT INTO QuizScores (studentName, questionId, selectedAnswer) VALUES (?, ?, ?)";
                 try (PreparedStatement pstmt = conn.prepareStatement(sql1)) {
                     for (Question q : attempt.getQuiz().getQuestions()) {
                         Character ans = attempt.getAnswers().get(q.getId());
