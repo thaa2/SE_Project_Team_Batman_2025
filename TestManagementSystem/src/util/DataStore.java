@@ -45,6 +45,11 @@ String sqlQuestions = "CREATE TABLE IF NOT EXISTS Questions (" +
     try (Connection conn = connect();
          Statement stmt = conn.createStatement()) {
         
+        if (conn == null) {
+            System.out.println("Error: Database connection failed. Please check your database path and SQLite driver.");
+            return;
+        }
+        
         stmt.execute(sqlCourses);
         stmt.execute(sqlQuestions);
         stmt.execute(sqlScores);
