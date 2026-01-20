@@ -12,87 +12,88 @@ import student.Student;
 public class DataStore {
     static final String url = "jdbc:sqlite:C:\\ITC\\DATABASE\\School.db";
 
-    public void createTables() {
-        // 1. Define all SQL strings at the beginning to avoid "cannot be resolved" errors
-        String sqlCourses = "CREATE TABLE IF NOT EXISTS Courses (" +
-                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                        "course_name TEXT NOT NULL, " +
-                        "lesson_content TEXT, " + // NEW: Column for lesson text
-                        "educator_id INTEGER, " +
-                        "FOREIGN KEY(educator_id) REFERENCES user(uers_id))";
+public void createTables() {
+        // Fix: Use consistent naming. I've changed 'uers' to 'users' and 'uers_id' to 'user_id'
+        String sqlUsers = "CREATE TABLE IF NOT EXISTS user (" +
+                          "user_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                          "name TEXT NOT NULL, " +
+                          "age INTEGER, " +
+                          "gender TEXT, " +
+                          "birthDate TEXT, " +
+                          "email TEXT UNIQUE NOT NULL, " +
+                          "password TEXT NOT NULL, " +
+                          "role TEXT NOT NULL)";
 
-    String sqlQuestions = "CREATE TABLE IF NOT EXISTS Questions (" +
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "text TEXT NOT NULL, " +
-                    "optionA TEXT, optionB TEXT, optionC TEXT, optionD TEXT, optionE TEXT, " +
-                    "correctAnswer TEXT, " +
-                    "questionType TEXT, " +
-                    "numberOfOptions INTEGER, " +
-                    "educator_id INTEGER, " +
-                    "course_id INTEGER, " + // Add this line!
-                    "FOREIGN KEY(educator_id) REFERENCES user(uers_id), " +
-                    "FOREIGN KEY(course_id) REFERENCES Courses(id))"; // Good practice for linking
+        String sqlEnrollments = "CREATE TABLE IF NOT EXISTS Enrollments (" +
+                                "student_id INTEGER, " +
+                                "course_id INTEGER, " +
+                                "PRIMARY KEY (student_id, course_id), " +
+                                "FOREIGN KEY(student_id) REFERENCES user(user_id), " + 
+                                "FOREIGN KEY(course_id) REFERENCES Courses(id))";
+
+        String sqlCourses = "CREATE TABLE IF NOT EXISTS Courses (" +
+                            "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                            "course_name TEXT NOT NULL, " +
+                            "lesson_content TEXT, " + 
+                            "educator_id INTEGER, " +
+                            "FOREIGN KEY(educator_id) REFERENCES user(user_id))";
+
+        String sqlQuestions = "CREATE TABLE IF NOT EXISTS Questions (" +
+                            "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                            "text TEXT NOT NULL, " +
+                            "correctAnswer TEXT, " +
+                            "educator_id INTEGER, " +
+                            "course_id INTEGER, " +
+                            "FOREIGN KEY(educator_id) REFERENCES user(user_id), " +
+                            "FOREIGN KEY(course_id) REFERENCES Courses(id))";
 
         String sqlScores = "CREATE TABLE IF NOT EXISTS QuizScores (" +
-                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                        "studentName TEXT, " +
-                        "totalScore INTEGER, " +
-                        "totalQuestions INTEGER, " +
-                        "percentage REAL, " +
-                        "attemptDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP)";
+                            "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                            "studentName TEXT, " +
+                            "totalScore INTEGER, " +
+                            "totalQuestions INTEGER, " +
+                            "percentage REAL, " +
+                            "attemptDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP)";
 
-        // 2. Use a single try-with-resources block for efficiency
-        // Connection conn = connect();
-        // if (conn == null) {
-        //     System.out.println("Error: Could not establish database connection. Please ensure:");
-        //     System.out.println("1. The SQLite JDBC driver (sqlite-jdbc-3.51.1.0.jar) is in the lib/ folder");
-        //     System.out.println("2. The classpath includes the lib/ folder when running the program");
-        //     return;
-        // }
-        
-        try (Connection conn = connect();Statement stmt = conn.createStatement()) {
+        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
             
+            stmt.execute(sqlUsers);
             stmt.execute(sqlCourses);
             stmt.execute(sqlQuestions);
             stmt.execute(sqlScores);
+            stmt.execute(sqlEnrollments);
             
-            System.out.println("All database tables checked/created successfully.");
-            
+            System.out.println("✓ All database tables synced successfully.");
         } catch (SQLException e) {
-            System.out.println("Error creating tables: " + e.getMessage());
+            System.out.println("Database Error: " + e.getMessage());
         }
     }
+
+    public static Connection connect() {
+        try {
+            Class.forName("org.sqlite.JDBC"); // This fixes the "Driver Not Found" error
+            return DriverManager.getConnection(url);
+        } catch (ClassNotFoundException | SQLException e) {
+            System.out.println("Database Connection Failed: " + e.getMessage());
+            return null;
+        }
+    }
+
+    // This method allows the Student to see which teachers they can take a quiz from
     public void displayAvailableTeachers() {
-        // We use uers_id to match your database typo in the screenshot
-        String sql = "SELECT uers_id, name FROM user WHERE role = 'EDUCATOR'";
+        String sql = "SELECT user_id, name FROM user WHERE role = 'EDUCATOR'";
         try (Connection conn = connect();
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(sql)) {
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
             
             System.out.println("\n--- Available Teachers ---");
-            System.out.printf("%-5s | %-20s\n", "ID", "Name");
             while (rs.next()) {
-                System.out.printf("%-5d | %-20s\n", rs.getInt("uers_id"), rs.getString("name"));
+                System.out.println("ID: " + rs.getInt("user_id") + " | Name: " + rs.getString("name"));
             }
         } catch (SQLException e) {
-            System.out.println("Error displaying teachers: " + e.getMessage());
+            System.out.println("Error: " + e.getMessage());
         }
     }
-
-        
-    public static Connection connect() {
-        Connection connection = null;
-        try {
-            Class.forName("org.sqlite.JDBC");
-            connection = DriverManager.getConnection(url);
-        } catch (ClassNotFoundException e) {
-            System.out.println("SQLite Driver not found: " + e.getMessage());
-        } catch (SQLException e) {
-            System.out.println("Connection error: " + e.getMessage());
-        }
-        return connection;
-    }
-
     public List<Question> getQuestionsByEducator(int teacherId) {
         List<Question> questions = new ArrayList<>();
         // Note: Ensure your Questions table column is named educator_id
