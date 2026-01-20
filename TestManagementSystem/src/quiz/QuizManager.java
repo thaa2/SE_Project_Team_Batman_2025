@@ -45,6 +45,7 @@ public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) 
         
         while (true) {
             System.out.println("\nSelect question type:");
+            System.out.println("0. Exit");
             System.out.println("1. Multiple Choice Question (MCQ)");
             System.out.println("2. True/False Question");
             System.out.print("Choose (1-2): ");
@@ -55,7 +56,11 @@ public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) 
                 addMCQQuestion(sc, educatorId); // Pass educatorId
             } else if (typeChoice.equals("2")) {
                 addTrueFalseQuestion(sc, educatorId); // Pass educatorId
-            } else {
+            } 
+            else if(typeChoice.equals("0")) {
+                break;
+            }
+            else {
                 System.out.println("Invalid choice!");
                 continue;
             }
