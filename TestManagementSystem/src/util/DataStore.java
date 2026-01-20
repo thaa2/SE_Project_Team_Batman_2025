@@ -12,16 +12,26 @@ import student.Student;
 public class DataStore {
     static final String url = "jdbc:sqlite:C:\\ITC\\DATABASE\\School.db";
 
-    public void createTables() {
-    String sqlQuestions = "CREATE TABLE IF NOT EXISTS Questions (" +
-                          "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                          "text TEXT NOT NULL, " +
-                          "optionA TEXT, optionB TEXT, optionC TEXT, optionD TEXT, optionE TEXT, " +
-                          "correctAnswer TEXT, " +
-                          "questionType TEXT, " +
-                          "numberOfOptions INTEGER, " +
-                          "educator_id INTEGER, " +
-                          "FOREIGN KEY(educator_id) REFERENCES user(uers_id))";
+ public void createTables() {
+    // 1. Define all SQL strings at the beginning to avoid "cannot be resolved" errors
+    String sqlCourses = "CREATE TABLE IF NOT EXISTS Courses (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "course_name TEXT NOT NULL, " +
+                    "lesson_content TEXT, " + // NEW: Column for lesson text
+                    "educator_id INTEGER, " +
+                    "FOREIGN KEY(educator_id) REFERENCES user(uers_id))";
+
+String sqlQuestions = "CREATE TABLE IF NOT EXISTS Questions (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "text TEXT NOT NULL, " +
+                "optionA TEXT, optionB TEXT, optionC TEXT, optionD TEXT, optionE TEXT, " +
+                "correctAnswer TEXT, " +
+                "questionType TEXT, " +
+                "numberOfOptions INTEGER, " +
+                "educator_id INTEGER, " +
+                "course_id INTEGER, " + // Add this line!
+                "FOREIGN KEY(educator_id) REFERENCES user(uers_id), " +
+                "FOREIGN KEY(course_id) REFERENCES Courses(id))"; // Good practice for linking
 
     String sqlScores = "CREATE TABLE IF NOT EXISTS QuizScores (" +
                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -31,11 +41,16 @@ public class DataStore {
                        "percentage REAL, " +
                        "attemptDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP)";
 
+    // 2. Use a single try-with-resources block for efficiency
     try (Connection conn = connect();
          Statement stmt = conn.createStatement()) {
+        
+        stmt.execute(sqlCourses);
         stmt.execute(sqlQuestions);
         stmt.execute(sqlScores);
-        System.out.println("Database tables checked/created successfully.");
+        
+        System.out.println("All database tables checked/created successfully.");
+        
     } catch (SQLException e) {
         System.out.println("Error creating tables: " + e.getMessage());
     }
@@ -158,18 +173,19 @@ public void displayAvailableTeachers() {
             System.out.println("Error printing educators: " + e.getMessage());
         }
     }
-    public void insertQuestion(Question question, int educatorId) {
-    String sql = "INSERT INTO Questions (text, correctAnswer, educator_id) VALUES (?, ?, ?)";
+public void insertQuestion(Question question, int educatorId, int courseId) {
+    String sql = "INSERT INTO Questions (text, correctAnswer, educator_id, course_id) VALUES (?, ?, ?, ?)";
     
     try (Connection conn = connect();
          PreparedStatement pstmt = conn.prepareStatement(sql)) {
         
         pstmt.setString(1, question.getText());
         pstmt.setString(2, String.valueOf(question.getCorrectAnswer()));
-        pstmt.setInt(3, educatorId); // Links the question to the logged-in user
+        pstmt.setInt(3, educatorId);
+        pstmt.setInt(4, courseId); // Save the Course ID here
         
         pstmt.executeUpdate();
-        System.out.println("✓ Question saved to database by educator ID: " + educatorId);
+        System.out.println("✓ Question linked to Course ID: " + courseId);
     } catch (SQLException e) {
         System.out.println("Error saving question: " + e.getMessage());
     }

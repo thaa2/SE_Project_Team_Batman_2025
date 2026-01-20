@@ -13,11 +13,12 @@ public class QuizController {
             // ensure it doesn't conflict with DataStore.connect()
             QuizService service = new QuizService();
             QuizManager quizManager = new QuizManager(service);
+            course.CourseManager courseManager = new course.CourseManager();
             DataStore ds = new DataStore(); // Added to access displayAvailableTeachers
             
             boolean exitModule = false;
             while (!exitModule) {
-                System.out.println("\n=== QUIZ SYSTEM (" + user.getRole() + ") ===");
+                System.out.println("\n=== SYSTEM (" + user.getRole() + ") ===");
                 System.out.println("1. View My Results");
                 System.out.println("2. Attempt Quiz");
 
@@ -25,6 +26,9 @@ public class QuizController {
                     System.out.println("3. Create new Quiz");
                     System.out.println("4. View All Students Results");
                     System.out.println("5. Show All Questions in Bank");
+                    System.out.println("6. Create a Course"); 
+                    System.out.println("7. View My Courses");
+                    System.out.println("8. Manage Courses (Edit/Delete)");
                 }
                 
                 System.out.println("0. Logout/Back");
@@ -53,6 +57,21 @@ public class QuizController {
                         if (user.getRole() == Role.EDUCATOR) quizManager.viewAllStudentsResults(sc);
                         else System.out.println("Access Denied.");
                     }
+                    case 6 -> {
+                        if (user.getRole() == Role.EDUCATOR) 
+                            courseManager.createCourse(sc, user.getUserId());
+                        else System.out.println("Access Denied.");
+                    }
+                    case 7 -> {
+                        if (user.getRole() == Role.EDUCATOR) 
+                            courseManager.viewMyCourses(user.getUserId());
+                        else System.out.println("Access Denied.");
+                    }
+                    case 8 -> {
+                        if (user.getRole() == Role.EDUCATOR) 
+                        courseManager.manageCourses(sc, user.getUserId());
+                        else System.out.println("Access Denied.");
+                }
                     case 0 -> exitModule = true;
                     default -> System.out.println("Invalid choice!");
                 }
