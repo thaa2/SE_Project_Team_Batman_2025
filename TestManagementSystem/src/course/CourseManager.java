@@ -167,4 +167,60 @@ public class CourseManager {
             System.out.println("Database Error: " + e.getMessage());
         }
     }
+public void viewEnrolledCourses(int studentId) {
+    String sql = "SELECT c.course_name, c.lesson_content FROM Courses c " +
+                 "JOIN Enrollments e ON c.id = e.course_id " +
+                 "WHERE e.student_id = ?";
+    try (Connection conn = DataStore.connect();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setInt(1, studentId);
+        ResultSet rs = pstmt.executeQuery();
+        
+        System.out.println("\n--- Your Course Materials ---");
+        boolean found = false;
+        while (rs.next()) {
+            found = true;
+            System.out.println("Course: " + rs.getString("course_name"));
+            System.out.println("Content: " + rs.getString("lesson_content"));
+            System.out.println("-----------------------------");
+        }
+        if (!found) System.out.println("You are not enrolled in any courses yet.");
+    } catch (SQLException e) {
+        System.out.println("Error: " + e.getMessage());
+    }
+}
+public void viewAllAvailableCourses() {
+    // FIX: Change 'u.user_id' to 'u.uers_id' to match your DataStore table definition
+    String sql = "SELECT c.id, c.course_name, u.name FROM Courses c JOIN user u ON c.educator_id = u.uers_id"; 
+    try (Connection conn = util.DataStore.connect();
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery(sql)) {
+        
+        System.out.println("\n--- Available Courses ---");
+        boolean found = false;
+        while (rs.next()) {
+            found = true;
+            System.out.println(rs.getInt("id") + ". " + rs.getString("course_name") + " (Teacher: " + rs.getString("name") + ")");
+        }
+        if (!found) System.out.println("No courses available currently.");
+        
+    } catch (SQLException e) {
+        System.out.println("Error loading courses: " + e.getMessage());
+    }
+}
+
+public void enrollInCourse(Scanner sc, int studentId) {
+    System.out.print("Enter Course ID to enroll: ");
+    int courseId = Integer.parseInt(sc.nextLine());
+    String sql = "INSERT INTO Enrollments (student_id, course_id) VALUES (?, ?)";
+    try (Connection conn = util.DataStore.connect();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setInt(1, studentId);
+        pstmt.setInt(2, courseId);
+        pstmt.executeUpdate();
+        System.out.println("✓ Successfully enrolled!");
+    } catch (SQLException e) {
+        System.out.println("Enrollment error: " + e.getMessage());
+    }
+}
 }

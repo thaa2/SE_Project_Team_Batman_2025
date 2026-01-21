@@ -46,6 +46,7 @@ public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) 
         while (true) {
             System.out.println("\nSelect question type:");
             System.out.println("0. Exit");
+            System.out.println("0. Exit");
             System.out.println("1. Multiple Choice Question (MCQ)");
             System.out.println("2. True/False Question");
             System.out.print("Choose (1-2): ");
@@ -56,6 +57,11 @@ public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) 
                 addMCQQuestion(sc, educatorId); // Pass educatorId
             } else if (typeChoice.equals("2")) {
                 addTrueFalseQuestion(sc, educatorId); // Pass educatorId
+            } 
+            else if(typeChoice.equals("0")) {
+                break;
+            }
+            else {
             } 
             else if(typeChoice.equals("0")) {
                 break;
@@ -263,6 +269,44 @@ public void printStudentResults(String studentName) {
         case 5 -> "A, B, C, D, or E";
         default -> "A-" + (char)('A' + numOptions - 1);
     };
+}
+public void viewAllAvailableCourses() {
+    String sql = "SELECT id, course_name FROM Courses";
+    try (Connection conn = DataStore.connect();
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery(sql)) {
+        System.out.println("\n--- Available Courses ---");
+        while (rs.next()) {
+            System.out.println("ID: " + rs.getInt("id") + " | " + rs.getString("course_name"));
+        }
+    } catch (SQLException e) { System.out.println(e.getMessage()); }
+}
+
+public void enrollInCourse(Scanner sc, int studentId) {
+    System.out.print("Enter Course ID to enroll: ");
+    int courseId = Integer.parseInt(sc.nextLine());
+    String sql = "INSERT OR IGNORE INTO Enrollments (student_id, course_id) VALUES (?, ?)";
+    try (Connection conn = DataStore.connect();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setInt(1, studentId);
+        pstmt.setInt(2, courseId);
+        if (pstmt.executeUpdate() > 0) System.out.println("Enrolled successfully!");
+    } catch (SQLException e) { System.out.println(e.getMessage()); }
+}
+
+public void viewEnrolledCourses(int studentId) {
+    // This JOIN ensures only enrolled courses are shown
+    String sql = "SELECT c.course_name, c.lesson_content FROM Courses c " +
+                 "JOIN Enrollments e ON c.id = e.course_id WHERE e.student_id = ?";
+    try (Connection conn = DataStore.connect();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setInt(1, studentId);
+        ResultSet rs = pstmt.executeQuery();
+        while (rs.next()) {
+            System.out.println("Course: " + rs.getString("course_name"));
+            System.out.println("Content: " + rs.getString("lesson_content") + "\n---");
+        }
+    } catch (SQLException e) { System.out.println(e.getMessage()); }
 }
 
 }
