@@ -136,48 +136,42 @@ public class DataStore {
             } 
         }
     }
-
-    
-
     public void viweResult(){
 
     }
 
-    
-
-   public void InsertUser(String name, int age, String gender, String birthDate, String email, String password, String role) {
-    // 1. Add Statement.RETURN_GENERATED_KEYS to the first prepareStatement
-    String sql = "INSERT INTO user (name, age, gender, birthDate, email, password, role) VALUES (?, ?, ?, ?, ?, ?, ?)";
-    
-    try (Connection connection = connect();
-         PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+    public void InsertUser(String name, int age, String gender, String birthDate, String email, String password, String role) {
+        // 1. Add Statement.RETURN_GENERATED_KEYS to the first prepareStatement
+        String sql = "INSERT INTO user (name, age, gender, birthDate, email, password, role) VALUES (?, ?, ?, ?, ?, ?, ?)";
         
-        pstmt.setString(1, name);
-        pstmt.setInt(2, age);
-        pstmt.setString(3, gender);
-        pstmt.setString(4, birthDate);
-        pstmt.setString(5, email);
-        pstmt.setString(6, password);
-        pstmt.setString(7, role);
-        
-        pstmt.executeUpdate();
-        System.out.println("User inserted successfully!");
+        try (Connection connection = connect();
+            PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            
+            pstmt.setString(1, name);
+            pstmt.setInt(2, age);
+            pstmt.setString(3, gender);
+            pstmt.setString(4, birthDate);
+            pstmt.setString(5, email);
+            pstmt.setString(6, password);
+            pstmt.setString(7, role);
+            
+            pstmt.executeUpdate();
+            System.out.println("User inserted successfully!");
 
-        // 2. Get the ID directly from the pstmt that just finished
-        try (ResultSet rs = pstmt.getGeneratedKeys()) {
-            if (rs.next()) {
-                int newId = rs.getInt(1); 
-                System.out.println("Generated User ID: " + newId);
-                
-                // 3. Pass that real ID to your role method
-                role(role, name, gender, newId); 
+            // 2. Get the ID directly from the pstmt that just finished
+            try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    int newId = rs.getInt(1); 
+                    System.out.println("Generated User ID: " + newId);
+                    
+                    // 3. Pass that real ID to your role method
+                    role(role, name, gender, newId); 
+                }
             }
+        } catch (SQLException e) {
+            System.out.println("Error inserting user: " + e.getMessage());
         }
-
-    } catch (SQLException e) {
-        System.out.println("Error inserting user: " + e.getMessage());
     }
-}
 
     public User getAuthenticatedUser(String email, String password) {
         String sql = "SELECT * FROM user WHERE email = ? AND password = ?";
@@ -225,26 +219,26 @@ public class DataStore {
             System.out.println("Error printing educators: " + e.getMessage());
         }
     }
-public void insertQuestion(Question question, int educatorId, int courseId) {
-    String sql = "INSERT INTO Questions (text, correctAnswer, educator_id, course_id) VALUES (?, ?, ?, ?)";
-    
-    try (Connection conn = connect();
-         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+    public void insertQuestion(Question question, int educatorId, int courseId) {
+        String sql = "INSERT INTO Questions (text, correctAnswer, educator_id, course_id) VALUES (?, ?, ?, ?)";
         
-        pstmt.setString(1, question.getText());
-        pstmt.setString(2, String.valueOf(question.getCorrectAnswer()));
-        pstmt.setInt(3, educatorId);
-        pstmt.setInt(4, courseId); // Save the Course ID here
-        
-        pstmt.executeUpdate();
-        System.out.println("✓ Question linked to Course ID: " + courseId);
-    } catch (SQLException e) {
-        System.out.println("Error saving question: " + e.getMessage());
+        try (Connection conn = connect();
+            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, question.getText());
+            pstmt.setString(2, String.valueOf(question.getCorrectAnswer()));
+            pstmt.setInt(3, educatorId);
+            pstmt.setInt(4, courseId); // Save the Course ID here
+            
+            pstmt.executeUpdate();
+            System.out.println("✓ Question linked to Course ID: " + courseId);
+        } catch (SQLException e) {
+            System.out.println("Error saving question: " + e.getMessage());
+        }
     }
-}
 
 // ============ STUDENT RESULTS METHODS ============
-
 public void saveQuizResult(String studentName, int totalScore, int totalQuestions) {
     String sql = "INSERT INTO QuizScores (studentName, totalScore, totalQuestions, percentage) VALUES (?, ?, ?, ?)";
     
