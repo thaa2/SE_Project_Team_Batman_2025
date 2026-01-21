@@ -3,6 +3,7 @@ package quiz;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
+import util.*;
 
 public class QuizAttempt {
     private String studentName;
@@ -125,6 +126,8 @@ public class QuizAttempt {
         System.out.println("Percentage: " + String.format("%.1f%%", percentage));
         System.out.println("Grade: " + getGrade(percentage));
         System.out.println("=".repeat(50));
+        DataStore ds = new DataStore();
+        ds.saveQuizResult(studentName,score,quiz.getQuestions().size());
     }
     
     private String getGrade(double percentage) {

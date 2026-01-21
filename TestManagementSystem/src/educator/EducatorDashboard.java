@@ -36,7 +36,7 @@ public class EducatorDashboard {
                     break;
                 case 3:
                     System.out.println("Create quiz");
-                    QuizController.addQuestions(sc);
+                    System.out.println("Please use the Quiz Module to create a quiz.");
                     break;
                 case 4:
                     System.out.println("View results");
