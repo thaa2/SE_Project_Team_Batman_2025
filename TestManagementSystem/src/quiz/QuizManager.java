@@ -61,8 +61,6 @@ public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) 
             else if(typeChoice.equals("0")) {
                 break;
             }
-            else {
-            } 
             else if(typeChoice.equals("0")) {
                 break;
             }
