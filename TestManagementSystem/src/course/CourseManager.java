@@ -4,15 +4,11 @@ import java.sql.*;
 import java.util.Scanner;
 import util.DataStore;
 
-/**
- * Handles all Course-related logic including Lesson content management.
- */
 public class CourseManager {
 
     // --- CREATE ---
     public void createCourse(Scanner sc, int educatorId) {
         System.out.println("\n=== CREATE NEW COURSE ===");
-        
         System.out.print("Enter Course Name: ");
         String courseName = sc.nextLine().trim();
         
@@ -65,7 +61,7 @@ public class CourseManager {
         }
     }
 
-    // --- MANAGE MENU (The logic for Choice 8) ---
+    // --- MANAGE (The logic for Menu Choice 8) ---
     public void manageCourses(Scanner sc, int educatorId) {
         viewMyCourses(educatorId); 
         System.out.print("\nEnter Course ID to manage (or 0 to go back): ");
@@ -91,15 +87,15 @@ public class CourseManager {
 
         switch (choice) {
             case "1" -> readLesson(courseId);
-            case "2" -> editCourse(sc, courseId, educatorId);
-            case "3" -> deleteCourse(sc, courseId, educatorId);
+            case "2" -> editCourse(sc, courseId, educatorId); // sc passed here
+            case "3" -> deleteCourse(sc, courseId, educatorId); // sc passed here
             case "0" -> { return; }
             default -> System.out.println("Invalid choice.");
         }
     }
 
     // --- READ (Detailed) ---
-    public void readLesson(int id) {
+    private void readLesson(int id) {
         String sql = "SELECT course_name, lesson_content FROM Courses WHERE id = ?";
         try (Connection conn = DataStore.connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -125,7 +121,7 @@ public class CourseManager {
         System.out.print("Enter New Course Name: ");
         String newName = sc.nextLine().trim();
         
-        System.out.println("Enter New Lesson Content (Type 'END' on a new line to finish):");
+        System.out.println("Enter New Lesson Content (Type 'END' to finish):");
         StringBuilder sb = new StringBuilder();
         String line;
         while (!(line = sc.nextLine()).equalsIgnoreCase("END")) {
@@ -141,18 +137,15 @@ public class CourseManager {
             pstmt.setInt(4, educatorId);
             
             int rows = pstmt.executeUpdate();
-            if (rows > 0) {
-                System.out.println("✓ Course updated successfully!");
-            } else {
-                System.out.println("Error: Update failed. Make sure you own this course.");
-            }
+            if (rows > 0) System.out.println("✓ Course updated successfully!");
+            else System.out.println("Error: Update failed. You may not own this course.");
         } catch (SQLException e) {
             System.out.println("Database Error: " + e.getMessage());
         }
     }
 
     // --- DELETE ---
-    private void deleteCourse(Scanner sc,int courseId, int educatorId) {
+    private void deleteCourse(Scanner sc, int courseId, int educatorId) {
         System.out.print("Are you sure you want to delete this course? (yes/no): ");
         String confirm = sc.nextLine();
         
@@ -168,11 +161,8 @@ public class CourseManager {
             pstmt.setInt(2, educatorId);
             
             int rowsAffected = pstmt.executeUpdate();
-            if (rowsAffected > 0) {
-                System.out.println("🗑 Course deleted successfully!");
-            } else {
-                System.out.println("Error: Could not delete. Check if the ID is correct.");
-            }
+            if (rowsAffected > 0) System.out.println("🗑 Course deleted successfully!");
+            else System.out.println("Error: Could not delete.");
         } catch (SQLException e) {
             System.out.println("Database Error: " + e.getMessage());
         }

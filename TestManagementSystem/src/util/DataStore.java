@@ -64,7 +64,7 @@ public class DataStore {
     }
     public void displayAvailableTeachers() {
         // We use uers_id to match your database typo in the screenshot
-        String sql = "SELECT uers_id, name FROM user WHERE role = 'EDUCATOR'";
+        String sql = "SELECT user_id, name FROM user WHERE role = 'EDUCATOR'";
         try (Connection conn = connect();
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql)) {
@@ -72,7 +72,7 @@ public class DataStore {
             System.out.println("\n--- Available Teachers ---");
             System.out.printf("%-5s | %-20s\n", "ID", "Name");
             while (rs.next()) {
-                System.out.printf("%-5d | %-20s\n", rs.getInt("uers_id"), rs.getString("name"));
+                System.out.printf("%-5d | %-20s\n", rs.getInt("user_id"), rs.getString("name"));
             }
         } catch (SQLException e) {
             System.out.println("Error displaying teachers: " + e.getMessage());
@@ -116,9 +116,10 @@ public class DataStore {
         return questions;
     }
 
-    public void role(String role, int id , String name, String gender){
-        if(role.equals("Student")){
-            String sql = "INSERT INTO teacher (s_id, name, gender) VALUES (?, ?, ?)";
+    public void role(String role, String name, String gender,int id) throws SQLException{
+
+        if(role.equalsIgnoreCase("STUDENT")){
+            String sql = "INSERT INTO student (stu_id, name, gender) VALUES (?, ?, ?)";
             try (Connection connection = connect();
                 PreparedStatement pstmt = connection.prepareStatement(sql)) {
                 String t_id = "S" + id;
@@ -126,13 +127,12 @@ public class DataStore {
                 pstmt.setString(1, t_id);
                 pstmt.setString(2, name);
                 pstmt.setString(3, gender);
-                System.out.println("User inserted successfully!");
-            } catch (SQLException e) {
-                System.out.println("Error inserting user: " + e.getMessage());
+                pstmt.executeUpdate(); // <--- ADD THIS LINE TO SAVE
+                System.out.println("Student saved!");
             }
         }
-        else if (role.equals("Educator")){
-            String sql = "INSERT INTO teacher (t_id, name, gender) VALUES (?, ?, ?)";
+        else if (role.equalsIgnoreCase("EDUCATOR")){
+            String sql = "INSERT INTO teacher (teacher_id, name, gender) VALUES (?, ?, ?)";
             try (Connection connection = connect();
                 PreparedStatement pstmt = connection.prepareStatement(sql)) {
                 String t_id = "T" + id;
@@ -140,12 +140,11 @@ public class DataStore {
                 pstmt.setString(1, t_id);
                 pstmt.setString(2, name);
                 pstmt.setString(3, gender);
-                System.out.println("User inserted successfully!");
-            } catch (SQLException e) {
-                System.out.println("Error inserting user: " + e.getMessage());
-            }
+                pstmt.executeUpdate(); // <--- ADD THIS LINE TO SAVE
+                System.out.println("Student saved!");
+                
+            } 
         }
-        
     }
 
     
@@ -156,24 +155,39 @@ public class DataStore {
 
     
 
-    public void InsertUser(String name, int age, String gender, String birthDate, String email, String password, String role) {
-        String sql = "INSERT INTO user (name, age, gender, birthDate, email, password, role) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        try (Connection connection = connect();
-             PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            
-            pstmt.setString(1, name);
-            pstmt.setInt(2, age);
-            pstmt.setString(3, gender);
-            pstmt.setString(4, birthDate);
-            pstmt.setString(5, email);
-            pstmt.setString(6, password);
-            pstmt.setString(7, role);
-            pstmt.executeUpdate();
-            System.out.println("User inserted successfully!");
-        } catch (SQLException e) {
-            System.out.println("Error inserting user: " + e.getMessage());
+   public void InsertUser(String name, int age, String gender, String birthDate, String email, String password, String role) {
+    // 1. Add Statement.RETURN_GENERATED_KEYS to the first prepareStatement
+    String sql = "INSERT INTO user (name, age, gender, birthDate, email, password, role) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    
+    try (Connection connection = connect();
+         PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        
+        pstmt.setString(1, name);
+        pstmt.setInt(2, age);
+        pstmt.setString(3, gender);
+        pstmt.setString(4, birthDate);
+        pstmt.setString(5, email);
+        pstmt.setString(6, password);
+        pstmt.setString(7, role);
+        
+        pstmt.executeUpdate();
+        System.out.println("User inserted successfully!");
+
+        // 2. Get the ID directly from the pstmt that just finished
+        try (ResultSet rs = pstmt.getGeneratedKeys()) {
+            if (rs.next()) {
+                int newId = rs.getInt(1); 
+                System.out.println("Generated User ID: " + newId);
+                
+                // 3. Pass that real ID to your role method
+                role(role, name, gender, newId); 
+            }
         }
+
+    } catch (SQLException e) {
+        System.out.println("Error inserting user: " + e.getMessage());
     }
+}
 
     public User getAuthenticatedUser(String email, String password) {
         String sql = "SELECT * FROM user WHERE email = ? AND password = ?";
@@ -208,7 +222,7 @@ public class DataStore {
 
     // ADD THIS METHOD: This fixes the "printEducatorList" error in your QuizService screenshot
     public void printEducatorList() {
-        String sql = "SELECT uers_id, name FROM user WHERE role = 'EDUCATOR'";
+        String sql = "SELECT user_id, name FROM user WHERE role = 'EDUCATOR'";
         try (Connection conn = connect();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {

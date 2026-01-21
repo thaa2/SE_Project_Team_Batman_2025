@@ -4,8 +4,15 @@ import java.util.Scanner;
 import educator.Educator;
 import student.Student;
 import util.DataStore;
+import auth.*;
+
 
 public class Register {
+
+    public static void main(String[] args) {
+        Register rs = new Register();
+        rs.registerInfo();
+    }
 
     public void registerInfo() {
         Scanner input = new Scanner(System.in);
@@ -108,6 +115,7 @@ public class Register {
         // 8. SAVE TO DATABASE
         DataStore dataStore = new DataStore();
         dataStore.InsertUser(name, age, gender, birthDate, email, password, selectedRole);
+        // dataStore.role(selectedRole, name, gender);
         System.out.println("Registration Successful!");
 
     }
