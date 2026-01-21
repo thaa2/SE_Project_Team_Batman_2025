@@ -39,17 +39,7 @@ public class DataStore {
                         "totalScore INTEGER, " +
                         "totalQuestions INTEGER, " +
                         "percentage REAL, " +
-                        "attemptDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP)";
-
-        // 2. Use a single try-with-resources block for efficiency
-        // Connection conn = connect();
-        // if (conn == null) {
-        //     System.out.println("Error: Could not establish database connection. Please ensure:");
-        //     System.out.println("1. The SQLite JDBC driver (sqlite-jdbc-3.51.1.0.jar) is in the lib/ folder");
-        //     System.out.println("2. The classpath includes the lib/ folder when running the program");
-        //     return;
-        // }
-        
+                        "attemptDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP)";      
         try (Connection conn = connect();Statement stmt = conn.createStatement()) {
             
             stmt.execute(sqlCourses);
@@ -90,6 +80,7 @@ public class DataStore {
         } catch (SQLException e) {
             System.out.println("Error: " + e.getMessage());
         }
+        return connection;
     }
     public List<Question> getQuestionsByEducator(int teacherId) {
         List<Question> questions = new ArrayList<>();
@@ -250,50 +241,7 @@ public void insertQuestion(Question question, int educatorId, int courseId) {
         System.out.println("Error saving question: " + e.getMessage());
     }
 }
-
 // ============ STUDENT RESULTS METHODS ============
-
-public void saveQuizResult(String studentName, int totalScore, int totalQuestions) {
-    String sql = "INSERT INTO QuizScores (studentName, totalScore, totalQuestions, percentage) VALUES (?, ?, ?, ?)";
-    
-    double percentage = (totalQuestions > 0) ? ((double) totalScore / totalQuestions) * 100 : 0;
-
-// ============ STUDENT RESULTS METHODS ============
-
-public void saveQuizResult(String studentName, int totalScore, int totalQuestions) {
-    String sql = "INSERT INTO QuizScores (studentName, totalScore, totalQuestions, percentage) VALUES (?, ?, ?, ?)";
-    
-    double percentage = (totalQuestions > 0) ? ((double) totalScore / totalQuestions) * 100 : 0;
-    
-    try (Connection conn = connect();
-         PreparedStatement pstmt = conn.prepareStatement(sql)) {
-        
-        pstmt.setString(1, studentName);
-        pstmt.setInt(2, totalScore);
-        pstmt.setInt(3, totalQuestions);
-        pstmt.setDouble(4, percentage);
-        
-        pstmt.executeUpdate();
-        System.out.println("✓ Quiz result saved to database!");
-        
-        pstmt.setInt(2, totalScore);
-        pstmt.setInt(3, totalQuestions);
-        pstmt.setDouble(4, percentage);
-        
-        pstmt.executeUpdate();
-        System.out.println("✓ Quiz result saved to database!");
-        
-    } catch (SQLException e) {
-        System.out.println("Error saving quiz result: " + e.getMessage());
-        System.out.println("Error saving quiz result: " + e.getMessage());
-    }
-}
-
-public void displayStudentResults(String studentName) {
-    String sql = "SELECT id, studentName, totalScore, totalQuestions, percentage, attemptDate FROM QuizScores WHERE studentName = ? ORDER BY attemptDate DESC";
-    
-}
-
 public void displayStudentResults(String studentName) {
     String sql = "SELECT id, studentName, totalScore, totalQuestions, percentage, attemptDate FROM QuizScores WHERE studentName = ? ORDER BY attemptDate DESC";
     
@@ -327,25 +275,11 @@ public void displayStudentResults(String studentName) {
         System.out.println("=========================================================\n");
         
         pstmt.setString(1, studentName);
-        ResultSet rs = pstmt.executeQuery();
         
         System.out.println("\n========== Quiz Results for " + studentName + " ==========");
         System.out.printf("%-5s | %-12s | %-10s | %-8s | %-20s\n", 
                           "ID", "Score", "Total Qs", "%", "Attempt Date");
         System.out.println("--------------------------------------------------------------");
-        
-        boolean hasResults = false;
-        while (rs.next()) {
-            hasResults = true;
-            int id = rs.getInt("id");
-            int score = rs.getInt("totalScore");
-            int total = rs.getInt("totalQuestions");
-            double percentage = rs.getDouble("percentage");
-            String date = rs.getString("attemptDate");
-            
-            System.out.printf("%-5d | %-12s | %-10d | %6.2f%% | %-20s\n", 
-                              id, score + "/" + total, total, percentage, date);
-        }
         
         if (!hasResults) {
             System.out.println("No results found for this student.");
