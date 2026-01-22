@@ -6,9 +6,14 @@ import student.Student;
 import util.DataStore;
 
 public class Register {
+    private Scanner scanner;
+
+    public Register(Scanner scanner) {
+        this.scanner = scanner;
+    }
 
     public void registerInfo() {
-        Scanner input = new Scanner(System.in);
+        Scanner input = scanner;
 
         System.out.println("=== Test Management System Registration ===");
 

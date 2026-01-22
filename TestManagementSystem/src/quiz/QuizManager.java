@@ -124,7 +124,7 @@ public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) 
         }
 
         // STEP 4 FIX: Pass the educatorId to the save method
-        Question question = new Question(text, options, correct, numOptions);
+        Question question = new Question(0, text, options, correct);
         quizService.saveQuestion(question, educatorId); 
         System.out.println("✓ MCQ question added successfully!");
     }
@@ -154,7 +154,7 @@ public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) 
         }
 
         // STEP 4 FIX: Pass the educatorId to the save method
-        Question question = new Question(text, correct);
+        Question question = new Question(0, text, correct);
         quizService.saveQuestion(question, educatorId); 
         System.out.println("✓ True/False question added successfully!");
     }

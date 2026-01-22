@@ -190,8 +190,8 @@ public void viewEnrolledCourses(int studentId) {
     }
 }
 public void viewAllAvailableCourses() {
-    // FIX: Change 'u.user_id' to 'u.uers_id' to match your DataStore table definition
-    String sql = "SELECT c.id, c.course_name, u.name FROM Courses c JOIN user u ON c.educator_id = u.uers_id"; 
+    // FIX: Use correct column name 'user_id'
+    String sql = "SELECT c.id, c.course_name, u.name FROM Courses c JOIN user u ON c.educator_id = u.user_id"; 
     try (Connection conn = util.DataStore.connect();
          Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {

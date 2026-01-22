@@ -3,6 +3,7 @@ package util;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.io.File;
 
 import auth.User;
 import educator.Educator;
@@ -10,9 +11,14 @@ import quiz.Question;
 import student.Student;
 
 public class DataStore {
-    static final String url = "jdbc:sqlite:C:\\ITC\\DATABASE\\School.db";
+    static final String url = "jdbc:sqlite:C:\\Users\\LENOVO\\Downloads\\School.db";
+    
+    static {
+        // Database file is located in Downloads folder
+        File dbFile = new File("C:\\Users\\LENOVO\\Downloads\\School.db");
+    }
 
-public void createTables() {
+    public void createTables() {
         // Fix: Use consistent naming. I've changed 'uers' to 'users' and 'uers_id' to 'user_id'
         String sqlUsers = "CREATE TABLE IF NOT EXISTS user (" +
                           "user_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -42,6 +48,8 @@ public void createTables() {
                             "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                             "text TEXT NOT NULL, " +
                             "correctAnswer TEXT, " +
+                            "options TEXT, " +
+                            "question_type TEXT, " +
                             "educator_id INTEGER, " +
                             "course_id INTEGER, " +
                             "FOREIGN KEY(educator_id) REFERENCES user(user_id), " +
@@ -62,6 +70,18 @@ public void createTables() {
             stmt.execute(sqlQuestions);
             stmt.execute(sqlScores);
             stmt.execute(sqlEnrollments);
+            
+            // Add missing columns if they don't exist (for backward compatibility)
+            try {
+                stmt.execute("ALTER TABLE Questions ADD COLUMN options TEXT");
+            } catch (SQLException e) {
+                // Column already exists, ignore
+            }
+            try {
+                stmt.execute("ALTER TABLE Questions ADD COLUMN question_type TEXT");
+            } catch (SQLException e) {
+                // Column already exists, ignore
+            }
             
             System.out.println("✓ All database tables synced successfully.");
         } catch (SQLException e) {
@@ -187,8 +207,8 @@ public void createTables() {
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                // FIX: Match your DB column name 'uers_id' found in your screenshot
-                int id = rs.getInt("uers_id"); 
+                // FIX: Match your DB column name 'user_id' correctly
+                int id = rs.getInt("user_id"); 
                 String name = rs.getString("name");
                 int age = rs.getInt("age");
                 String gender = rs.getString("gender");
@@ -209,14 +229,14 @@ public void createTables() {
 
     // ADD THIS METHOD: This fixes the "printEducatorList" error in your QuizService screenshot
     public void printEducatorList() {
-        String sql = "SELECT uers_id, name FROM user WHERE role = 'EDUCATOR'";
+        String sql = "SELECT user_id, name FROM user WHERE role = 'EDUCATOR'";
         try (Connection conn = connect();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             
             System.out.println("\n--- Available Educators ---");
             while (rs.next()) {
-                System.out.println("ID: " + rs.getInt("uers_id") + " | Name: " + rs.getString("name"));
+                System.out.println("ID: " + rs.getInt("user_id") + " | Name: " + rs.getString("name"));
             }
         } catch (SQLException e) {
             System.out.println("Error printing educators: " + e.getMessage());

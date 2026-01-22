@@ -6,9 +6,14 @@ import student.Student;
 import educator.Educator;
 
 public class Login {
+    private Scanner scanner;
+
+    public Login(Scanner scanner) {
+        this.scanner = scanner;
+    }
 
     public User loginInfo() {
-        Scanner input = new Scanner(System.in);
+        Scanner input = scanner;
         DataStore dataStore = new DataStore();
 
         String email = "";

@@ -2,7 +2,7 @@ package main;
 
 import java.util.Scanner;
 import auth.*;
-import quiz.QuizController; // Ensure this is imported
+import quiz.*; // Ensure this is imported
 import util.DataStore;
 
 public class Main {
@@ -33,7 +33,7 @@ public class Main {
 
             if (choice == 1) {
                 // 1. Handle Login
-                Login login = new Login();
+                Login login = new Login(sc);
                 User user = (User) login.loginInfo(); 
 
                 if (user != null) {
@@ -47,7 +47,7 @@ public class Main {
 
             } else if (choice == 2) {
                 // Handle Registration
-                new Register().registerInfo();
+                new Register(sc).registerInfo();
                 
             } else if (choice == 3) {
                 System.out.println("Exiting System. Goodbye!");

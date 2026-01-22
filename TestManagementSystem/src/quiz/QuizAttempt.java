@@ -1,150 +1,72 @@
 package quiz;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
-import util.*;
+import java.util.*;
+import quiz.Quiz;
+import quiz.Question;
+import quiz.QuizService;
 
 public class QuizAttempt {
     private String studentName;
-    private Quiz quiz;
-    private Map<Integer, Character> answers = new HashMap<>();
-    private int score;
+    private Quiz quiz; 
+    private Map<Integer, Character> studentAnswers = new HashMap<>();
     private Scanner scanner;
-    private QuizService quizService;
-    
-    public QuizAttempt(String studentName, Quiz quiz, Scanner scanner, QuizService quizService) {
+    private QuizService service;
+
+    public QuizAttempt(String studentName, Quiz quiz, Scanner scanner, QuizService service) {
         this.studentName = studentName;
         this.quiz = quiz;
         this.scanner = scanner;
-        this.quizService = quizService;
+        this.service = service;
     }
-    
-    public void executeAttempt() {
-        displayQuizHeader();
-        askQuestions();
-        gradeAndDisplayResults();
-    }
-    
-    private void displayQuizHeader() {
-        System.out.println("\n" + "=".repeat(50));
-        System.out.println("QUIZ: " + quiz.getTitle());
-        System.out.println("Student: " + studentName);
-        System.out.println("Number of questions: " + quiz.getQuestions().size());
-        
-        int mcqCount = 0;
-        int tfCount = 0;
+
+    public void run() {
+        System.out.println("\n--- Starting Quiz: " + quiz.getTitle() + " ---");
+
         for (Question q : quiz.getQuestions()) {
-            if (q.getQuestionType().equals("MCQ")) {
-                mcqCount++;
-            } else {
-                tfCount++;
-            }
-        }
-        System.out.println("MCQ Questions: " + mcqCount);
-        System.out.println("True/False Questions: " + tfCount);
-        System.out.println("=".repeat(50) + "\n");
-    }
-    
-    private void askQuestions() {
-        int questionNum = 1;
-        for (Question q : quiz.getQuestions()) {
-            displayQuestion(questionNum, q);
-            char answer = getValidAnswer(q);
-            answerQuestion(q.getId(), answer);
-            System.out.println("-".repeat(40));
-            questionNum++;
-        }
-    }
-    
-    private void displayQuestion(int questionNum, Question q) {
-        System.out.println("Question " + questionNum + " [" + q.getQuestionType() + "]:");
-        System.out.println(q.getText());
-        
-        if (q.getQuestionType().equals("TF")) {
-            System.out.println("  A. True");
-            System.out.println("  B. False");
-        } else {
-            for (String opt : q.getOptions()) {
-                System.out.println("  " + opt);
-            }
-        }
-    }
-    
-    private char getValidAnswer(Question q) {
-        while (true) {
-            if (q.getQuestionType().equals("TF")) {
-                System.out.print("Your answer (A for True, B for False): ");
-            } else {
-                System.out.print("Your answer (" + q.getAnswerRange() + "): ");
-            }
-            
-            String input = scanner.nextLine().toUpperCase();
-            
-            if (input.length() > 0) {
-                char answer = input.charAt(0);
-                
-                if (q.getQuestionType().equals("TF")) {
-                    if (answer == 'A' || answer == 'B') {
-                        return answer;
-                    }
+            System.out.println("\n" + q.getText());
+            String[] options = q.getOptions();
+            for (int i = 0; i < options.length; i++) {
+                String opt = options[i];
+                // If option already has letter prefix, use as-is; otherwise add it
+                if (opt.matches("^[A-Z]\\..*")) {
+                    System.out.println("  " + opt);
                 } else {
-                    char maxOption;
-                    switch (q.getNumberOfOptions()) {
-                        case 3: maxOption = 'C'; break;
-                        case 4: maxOption = 'D'; break;
-                        case 5: maxOption = 'E'; break;
-                        default: maxOption = 'E'; break;
-                    }
-                    
-                    if (answer >= 'A' && answer <= maxOption) {
-                        return answer;
-                    }
+                    char letter = (char) ('A' + i);
+                    System.out.println("  " + letter + ". " + opt);
                 }
             }
             
-            if (q.getQuestionType().equals("TF")) {
-                System.out.println("Invalid input! Please enter A (True) or B (False).");
-            } else {
-                System.out.println("Invalid input! Please enter " + q.getAnswerRange());
+            System.out.print("Your Answer: ");
+            String input = scanner.nextLine().trim().toUpperCase();
+            
+            if (!input.isEmpty()) {
+                // Store answer using the Question ID as the key
+                studentAnswers.put(q.getId(), input.charAt(0));
             }
         }
-    }
-    
-    private void gradeAndDisplayResults() {
-        this.score = quizService.gradeQuiz(this);
-        displayResults();
-    }
-    
-    private void displayResults() {
-        System.out.println("\n" + "=".repeat(50));
-        System.out.println("QUIZ COMPLETED!");
-        System.out.println("Student: " + studentName);
-        System.out.println("Score: " + score + "/" + quiz.getQuestions().size());
+
+        // Invoke Auto-Grading
+        int finalScore = service.processGrading(this);
         
-        double percentage = (double) score / quiz.getQuestions().size() * 100;
-        System.out.println("Percentage: " + String.format("%.1f%%", percentage));
-        System.out.println("Grade: " + getGrade(percentage));
-        System.out.println("=".repeat(50));
-        DataStore ds = new DataStore();
-        ds.saveQuizResult(studentName,score,quiz.getQuestions().size());
+        System.out.println("\n" + "=".repeat(30));
+        System.out.println("QUIZ COMPLETE: " + studentName);
+        System.out.println("Final Score: " + finalScore + "/" + quiz.getQuestions().size());
+        System.out.println("=".repeat(30));
     }
-    
-    private String getGrade(double percentage) {
-        if (percentage >= 90) return "A (Excellent)";
-        else if (percentage >= 80) return "B (Very Good)";
-        else if (percentage >= 70) return "C (Good)";
-        else if (percentage >= 60) return "D (Satisfactory)";
-        else return "F (Fail)";
+
+    public void executeAttempt() {
+        run();
     }
-    
-    public void answerQuestion(int questionId, char answer) {
-        answers.put(questionId, Character.toUpperCase(answer));
+
+    public void setScore(int score) {
+        // This is handled by QuizService
     }
-    
-    public Map<Integer, Character> getAnswers() { return answers; }
+
+    public int getScore() {
+        return 0; // Will be set by QuizService after grading
+    }
+
+    public Map<Integer, Character> getAnswers() { return studentAnswers; }
     public Quiz getQuiz() { return quiz; }
     public String getStudentName() { return studentName; }
-    public int getScore() { return score; }
-    public void setScore(int score) { this.score = score; }
 }
