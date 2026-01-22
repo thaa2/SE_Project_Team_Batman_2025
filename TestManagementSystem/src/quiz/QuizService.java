@@ -118,6 +118,8 @@ public class QuizService {
     }
 
     public void printStudentResults(String studentName) {
-        // Implementation for printing student results
+        // Call DataStore to display results from database
+        util.DataStore dataStore = new util.DataStore();
+        dataStore.displayStudentResults(studentName);
     }
 }
