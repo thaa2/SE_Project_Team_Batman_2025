@@ -11,7 +11,7 @@ import quiz.Question;
 import student.Student;
 
 public class DataStore {
-    static final String url = "jdbc:sqlite:C:\\ITC\\DATABASE\\School.db";
+    static final String url = "jdbc:sqlite:C:School.db";
 
     public void createTables() {
         // 1. Define all SQL strings at the beginning to avoid "cannot be resolved" errors
