@@ -146,7 +146,6 @@ public class QuizService {
     }
 
     public void printAllStudents() {
-        // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'printAllStudents'");
     }
 
@@ -172,7 +171,7 @@ public class QuizService {
     }
 
     public Object getAllQuestions() {
-        // TODO Auto-generated method stub
+        
         throw new UnsupportedOperationException("Unimplemented method 'getAllQuestions'");
     }
 }

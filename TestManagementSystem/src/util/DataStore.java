@@ -3,18 +3,31 @@ package util;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.io.File;
 
-import auth.User;
+import auth.*;
 import educator.Educator;
 import quiz.Question;
 import student.Student;
 
 public class DataStore {
-    static final String url = "jdbc:sqlite:C:School.db";
+    // FIXED: Use forward slashes or escaped backslashes
+    // Option 1: Forward slashes (recommended)
+    static final String url = "jdbc:sqlite:School.db";
+    
+    // Option 2: Escaped backslashes (alternative)
+    // static final String url = "jdbc:sqlite:C:\\School.db";
+    
+    // Option 3: Relative path (creates database in project folder)
+    // static final String url = "jdbc:sqlite:School.db";
 
     public void createTables() {
-        // 1. Define all SQL strings at the beginning to avoid "cannot be resolved" errors
+        Connection conn = connect();
+        if (conn == null) {
+            System.out.println("Error: Database connection is null. Cannot create tables.");
+            return;
+        }
+        
+        // Define all SQL strings
         String sqlUser = "CREATE TABLE IF NOT EXISTS user (" +
                         "uers_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                         "name TEXT NOT NULL, " +
@@ -59,7 +72,7 @@ public class DataStore {
                         "user_id INTEGER UNIQUE, " +
                         "gpa REAL, " +
                         "major TEXT, " +
-                        "FOREIGN KEY(uers_id) REFERENCES user(uers_id))";
+                        "FOREIGN KEY(user_id) REFERENCES user(uers_id))";
         
         String sqlEnrollments = "CREATE TABLE IF NOT EXISTS Enrollments (" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -74,10 +87,9 @@ public class DataStore {
                         "user_id INTEGER UNIQUE, " +
                         "name TEXT, " +
                         "gender TEXT, " +
-                        "FOREIGN KEY(uers_id) REFERENCES user(uers_id))";
+                        "FOREIGN KEY(user_id) REFERENCES user(uers_id))";
         
-        try (Connection conn = connect();Statement stmt = conn.createStatement()) {
-            
+        try (Statement stmt = conn.createStatement()) {
             stmt.execute(sqlUser);
             stmt.execute(sqlCourses);
             stmt.execute(sqlQuestions);
@@ -86,15 +98,22 @@ public class DataStore {
             stmt.execute(sqlEnrollments);
             stmt.execute(sqlTeacher);
             
-            System.out.println("All database tables checked/created successfully.");
+            System.out.println("✓ All database tables checked/created successfully.");
             
         } catch (SQLException e) {
             System.out.println("Error creating tables: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            try {
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
+    
     public void displayAvailableTeachers() {
-        // We use uers_id to match your database typo in the screenshot
-        String sql = "SELECT user_id, name FROM user WHERE role = 'EDUCATOR'";
+        String sql = "SELECT uers_id, name FROM user WHERE role = 'EDUCATOR'";
         try (Connection conn = connect();
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql)) {
@@ -106,26 +125,30 @@ public class DataStore {
             }
         } catch (SQLException e) {
             System.out.println("Error displaying teachers: " + e.getMessage());
+            e.printStackTrace();
         }
     }
-
         
     public static Connection connect() {
         Connection connection = null;
         try {
             Class.forName("org.sqlite.JDBC");
             connection = DriverManager.getConnection(url);
+            System.out.println("✓ Database connected successfully!");
         } catch (ClassNotFoundException e) {
-            System.out.println("SQLite Driver not found: " + e.getMessage());
+            System.out.println("❌ SQLite Driver not found: " + e.getMessage());
+            System.out.println("Make sure sqlite-jdbc.jar is in your classpath!");
+            e.printStackTrace();
         } catch (SQLException e) {
-            System.out.println("Connection error: " + e.getMessage());
+            System.out.println("❌ Connection error: " + e.getMessage());
+            System.out.println("Check database path: " + url);
+            e.printStackTrace();
         }
         return connection;
     }
 
     public List<Question> getQuestionsByEducator(int teacherId) {
         List<Question> questions = new ArrayList<>();
-        // Note: Ensure your Questions table column is named educator_id
         String sql = "SELECT * FROM Questions WHERE educator_id = ?";
         
         try (Connection conn = connect();
@@ -141,48 +164,51 @@ public class DataStore {
                 questions.add(new Question(id, text, correct)); 
             }
         } catch (SQLException e) { 
-            System.out.println("Error fetching educator questions: " + e.getMessage()); 
+            System.out.println("Error fetching educator questions: " + e.getMessage());
+            e.printStackTrace();
         }
         return questions;
     }
 
-    public void role(String role, String name, String gender,int id) throws SQLException{
-
-        if(role.equalsIgnoreCase("STUDENT")){
-            String sql = "INSERT INTO student (student_id, uers_id, name, gender) VALUES (?, ?, ?, ?)";
+    public void role(String role, String name, String gender, int id) throws SQLException {
+        if (role.equalsIgnoreCase("STUDENT")) {
+            String sql = "INSERT INTO student (student_id, user_id, name, gender) VALUES (?, ?, ?, ?)";
             try (Connection connection = connect();
                 PreparedStatement pstmt = connection.prepareStatement(sql)) {
-                String t_id = "S" + id;
+                String s_id = "S" + id;
                 
-                pstmt.setString(1, t_id);
+                pstmt.setString(1, s_id);
                 pstmt.setInt(2, id);
                 pstmt.setString(3, name);
                 pstmt.setString(4, gender);
-                pstmt.executeUpdate(); // <--- ADD THIS LINE TO SAVE
-                System.out.println("Student saved!");
+                pstmt.executeUpdate();
+                System.out.println("✓ Student saved!");
+            } catch (SQLException e) {
+                System.out.println("Error saving student: " + e.getMessage());
+                e.printStackTrace();
+                throw e;
             }
-        }
-        else if (role.equalsIgnoreCase("EDUCATOR")){
-            String sql = "INSERT INTO teacher (teacher_id, name, gender) VALUES (?, ?, ?)";
+        } else if (role.equalsIgnoreCase("EDUCATOR")) {
+            String sql = "INSERT INTO teacher (teacher_id, user_id, name, gender) VALUES (?, ?, ?, ?)";
             try (Connection connection = connect();
                 PreparedStatement pstmt = connection.prepareStatement(sql)) {
                 String t_id = "T" + id;
                 
                 pstmt.setString(1, t_id);
-                pstmt.setString(2, name);
-                pstmt.setString(3, gender);
-                pstmt.executeUpdate(); // <--- ADD THIS LINE TO SAVE
-                System.out.println("Student saved!");
-                
-            } 
+                pstmt.setInt(2, id);
+                pstmt.setString(3, name);
+                pstmt.setString(4, gender);
+                pstmt.executeUpdate();
+                System.out.println("✓ Educator saved!");
+            } catch (SQLException e) {
+                System.out.println("Error saving educator: " + e.getMessage());
+                e.printStackTrace();
+                throw e;
+            }
         }
-    }
-    public void viweResult(){
-
     }
 
     public void InsertUser(String name, int age, String gender, String birthDate, String email, String password, String role) {
-        // 1. Add Statement.RETURN_GENERATED_KEYS to the first prepareStatement
         String sql = "INSERT INTO user (name, age, gender, birthDate, email, password, role) VALUES (?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection connection = connect();
@@ -197,20 +223,19 @@ public class DataStore {
             pstmt.setString(7, role);
             
             pstmt.executeUpdate();
-            System.out.println("User inserted successfully!");
+            System.out.println("✓ User inserted successfully!");
 
-            // 2. Get the ID directly from the pstmt that just finished
             try (ResultSet rs = pstmt.getGeneratedKeys()) {
                 if (rs.next()) {
                     int newId = rs.getInt(1); 
-                    System.out.println("Generated User ID: " + newId);
+                    System.out.println("✓ Generated User ID: " + newId);
                     
-                    // 3. Pass that real ID to your role method
                     role(role, name, gender, newId); 
                 }
             }
         } catch (SQLException e) {
             System.out.println("Error inserting user: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -225,7 +250,6 @@ public class DataStore {
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                // FIX: Match your DB column name 'user_id' correctly
                 int id = rs.getInt("uers_id"); 
                 String name = rs.getString("name");
                 int age = rs.getInt("age");
@@ -241,23 +265,24 @@ public class DataStore {
             }
         } catch (SQLException e) {
             System.out.println("Login database error: " + e.getMessage());
+            e.printStackTrace();
         }
         return null;
     }
 
-    // ADD THIS METHOD: This fixes the "printEducatorList" error in your QuizService screenshot
     public void printEducatorList() {
-        String sql = "SELECT user_id, name FROM user WHERE role = 'EDUCATOR'";
+        String sql = "SELECT uers_id, name FROM user WHERE role = 'EDUCATOR'";
         try (Connection conn = connect();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             
             System.out.println("\n--- Available Educators ---");
             while (rs.next()) {
-                System.out.println("ID: " + rs.getInt("user_id") + " | Name: " + rs.getString("name"));
+                System.out.println("ID: " + rs.getInt("uers_id") + " | Name: " + rs.getString("name"));
             }
         } catch (SQLException e) {
             System.out.println("Error printing educators: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -270,71 +295,73 @@ public class DataStore {
             pstmt.setString(1, question.getText());
             pstmt.setString(2, String.valueOf(question.getCorrectAnswer()));
             pstmt.setInt(3, educatorId);
-            pstmt.setInt(4, courseId); // Save the Course ID here
+            pstmt.setInt(4, courseId);
             
             pstmt.executeUpdate();
             System.out.println("✓ Question linked to Course ID: " + courseId);
         } catch (SQLException e) {
             System.out.println("Error saving question: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
-// ============ STUDENT RESULTS METHODS ============
-public void saveQuizResult(String studentName, int totalScore, int totalQuestions) {
-    String sql = "INSERT INTO QuizScores (studentName, totalScore, totalQuestions, percentage) VALUES (?, ?, ?, ?)";
-    
-    double percentage = (totalQuestions > 0) ? ((double) totalScore / totalQuestions) * 100 : 0;
-    
-    try (Connection conn = connect();
-         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+    public void saveQuizResult(String studentName, int totalScore, int totalQuestions) {
+        String sql = "INSERT INTO QuizScores (studentName, totalScore, totalQuestions, percentage) VALUES (?, ?, ?, ?)";
         
-        pstmt.setString(1, studentName);
-        pstmt.setInt(2, totalScore);
-        pstmt.setInt(3, totalQuestions);
-        pstmt.setDouble(4, percentage);
+        double percentage = (totalQuestions > 0) ? ((double) totalScore / totalQuestions) * 100 : 0;
         
-        pstmt.executeUpdate();
-        System.out.println("✓ Quiz result saved to database!");
-        
-    } catch (SQLException e) {
-        System.out.println("Error saving quiz result: " + e.getMessage());
-    }
-}
-
-public void displayStudentResults(String studentName) {
-    String sql = "SELECT id, studentName, totalScore, totalQuestions, percentage, attemptDate FROM QuizScores WHERE studentName = ? ORDER BY attemptDate DESC";
-    
-    try (Connection conn = connect();
-         PreparedStatement pstmt = conn.prepareStatement(sql)) {
-        
-        pstmt.setString(1, studentName);
-        ResultSet rs = pstmt.executeQuery();
-        
-        System.out.println("\n========== Quiz Results for " + studentName + " ==========");
-        System.out.printf("%-5s | %-12s | %-10s | %-8s | %-20s\n", 
-                          "ID", "Score", "Total Qs", "%", "Attempt Date");
-        System.out.println("--------------------------------------------------------------");
-        
-        boolean hasResults = false;
-        while (rs.next()) {
-            hasResults = true;
-            int id = rs.getInt("id");
-            int score = rs.getInt("totalScore");
-            int total = rs.getInt("totalQuestions");
-            double percentage = rs.getDouble("percentage");
-            String date = rs.getString("attemptDate");
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
-            System.out.printf("%-5d | %-12s | %-10d | %6.2f%% | %-20s\n", 
-                              id, score + "/" + total, total, percentage, date);
+            pstmt.setString(1, studentName);
+            pstmt.setInt(2, totalScore);
+            pstmt.setInt(3, totalQuestions);
+            pstmt.setDouble(4, percentage);
+            
+            pstmt.executeUpdate();
+            System.out.println("✓ Quiz result saved to database!");
+            
+        } catch (SQLException e) {
+            System.out.println("Error saving quiz result: " + e.getMessage());
+            e.printStackTrace();
         }
-        
-        if (!hasResults) {
-            System.out.println("No results found for this student.");
-        }
-        System.out.println("=========================================================\n");
-        
-    } catch (SQLException e) {
-        System.out.println("Error retrieving results: " + e.getMessage());
     }
-}
+
+    public void displayStudentResults(String studentName) {
+        String sql = "SELECT id, studentName, totalScore, totalQuestions, percentage, attemptDate FROM QuizScores WHERE studentName = ? ORDER BY attemptDate DESC";
+        
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, studentName);
+            ResultSet rs = pstmt.executeQuery();
+            
+            System.out.println("\n========== Quiz Results for " + studentName + " ==========");
+            System.out.printf("%-5s | %-12s | %-10s | %-8s | %-20s\n", 
+                              "ID", "Score", "Total Qs", "%", "Attempt Date");
+            System.out.println("--------------------------------------------------------------");
+            
+            boolean hasResults = false;
+            while (rs.next()) {
+                hasResults = true;
+                int id = rs.getInt("id");
+                int score = rs.getInt("totalScore");
+                int total = rs.getInt("totalQuestions");
+                double percentage = rs.getDouble("percentage");
+                String date = rs.getString("attemptDate");
+                
+                System.out.printf("%-5d | %-12s | %-10d | %6.2f%% | %-20s\n", 
+                                  id, score + "/" + total, total, percentage, date);
+            }
+            
+            if (!hasResults) {
+                System.out.println("No results found for this student.");
+            }
+            System.out.println("=========================================================\n");
+            
+        } catch (SQLException e) {
+            System.out.println("Error retrieving results: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 }

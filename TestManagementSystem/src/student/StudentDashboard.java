@@ -46,6 +46,7 @@ public class StudentDashboard {
                     System.out.println("Invalid choice.");
             }
         } while (choice != 0);
+        sc.close();
     }
 
     private void viewResults() {

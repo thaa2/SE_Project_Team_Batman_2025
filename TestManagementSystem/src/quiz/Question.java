@@ -27,4 +27,5 @@ public class Question {
     public String getText() { return text; }
     public String[] getOptions() { return options; }
     public char getCorrectAnswer() { return correctAnswer; }
+    public String getQType(){ return type; }
 }
