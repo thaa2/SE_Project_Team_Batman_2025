@@ -11,12 +11,12 @@ import quiz.Question;
 import student.Student;
 
 public class DataStore {
-    static final String url = "jdbc:sqlite:C:\\Users\\LENOVO\\Downloads\\School.db";
+    static final String url = "jdbc:sqlite:C:\\ITC\\DATABASE\\School.db";
 
     public void createTables() {
         // 1. Define all SQL strings at the beginning to avoid "cannot be resolved" errors
         String sqlUser = "CREATE TABLE IF NOT EXISTS user (" +
-                        "user_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "uers_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                         "name TEXT NOT NULL, " +
                         "age INTEGER, " +
                         "gender TEXT, " +
@@ -30,7 +30,7 @@ public class DataStore {
                         "course_name TEXT NOT NULL, " +
                         "lesson_content TEXT, " +
                         "educator_id INTEGER, " +
-                        "FOREIGN KEY(educator_id) REFERENCES user(user_id))";
+                        "FOREIGN KEY(educator_id) REFERENCES user(uers_id))";
 
         String sqlQuestions = "CREATE TABLE IF NOT EXISTS Questions (" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -43,7 +43,7 @@ public class DataStore {
                         "numberOfOptions INTEGER, " +
                         "educator_id INTEGER, " +
                         "course_id INTEGER, " +
-                        "FOREIGN KEY(educator_id) REFERENCES user(user_id), " +
+                        "FOREIGN KEY(educator_id) REFERENCES user(uers_id), " +
                         "FOREIGN KEY(course_id) REFERENCES Courses(id))";
 
         String sqlScores = "CREATE TABLE IF NOT EXISTS QuizScores (" +
@@ -59,7 +59,7 @@ public class DataStore {
                         "user_id INTEGER UNIQUE, " +
                         "gpa REAL, " +
                         "major TEXT, " +
-                        "FOREIGN KEY(user_id) REFERENCES user(user_id))";
+                        "FOREIGN KEY(uers_id) REFERENCES user(uers_id))";
         
         String sqlEnrollments = "CREATE TABLE IF NOT EXISTS Enrollments (" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -74,7 +74,7 @@ public class DataStore {
                         "user_id INTEGER UNIQUE, " +
                         "name TEXT, " +
                         "gender TEXT, " +
-                        "FOREIGN KEY(user_id) REFERENCES user(user_id))";
+                        "FOREIGN KEY(uers_id) REFERENCES user(uers_id))";
         
         try (Connection conn = connect();Statement stmt = conn.createStatement()) {
             
@@ -102,7 +102,7 @@ public class DataStore {
             System.out.println("\n--- Available Teachers ---");
             System.out.printf("%-5s | %-20s\n", "ID", "Name");
             while (rs.next()) {
-                System.out.printf("%-5d | %-20s\n", rs.getInt("user_id"), rs.getString("name"));
+                System.out.printf("%-5d | %-20s\n", rs.getInt("uers_id"), rs.getString("name"));
             }
         } catch (SQLException e) {
             System.out.println("Error displaying teachers: " + e.getMessage());
@@ -149,7 +149,7 @@ public class DataStore {
     public void role(String role, String name, String gender,int id) throws SQLException{
 
         if(role.equalsIgnoreCase("STUDENT")){
-            String sql = "INSERT INTO student (student_id, user_id, name, gender) VALUES (?, ?, ?, ?)";
+            String sql = "INSERT INTO student (student_id, uers_id, name, gender) VALUES (?, ?, ?, ?)";
             try (Connection connection = connect();
                 PreparedStatement pstmt = connection.prepareStatement(sql)) {
                 String t_id = "S" + id;
@@ -226,7 +226,7 @@ public class DataStore {
 
             if (rs.next()) {
                 // FIX: Match your DB column name 'user_id' correctly
-                int id = rs.getInt("user_id"); 
+                int id = rs.getInt("uers_id"); 
                 String name = rs.getString("name");
                 int age = rs.getInt("age");
                 String gender = rs.getString("gender");
