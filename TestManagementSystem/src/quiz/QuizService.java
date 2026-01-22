@@ -83,36 +83,56 @@ public class QuizService {
         return questions;
     }
 
-    public void saveQuestion(Question question, int educatorId) {
-        String sql = "INSERT INTO Questions (text, correctAnswer, options, question_type, educator_id) VALUES (?, ?, ?, ?, ?)";
-        try (java.sql.Connection conn = util.DataStore.connect();
-             java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, question.getText());
-            pstmt.setString(2, String.valueOf(question.getCorrectAnswer()));
-            
-            // Store options as pipe-separated string
-            String[] options = question.getOptions();
-            String optionsStr = String.join("|", options);
-            pstmt.setString(3, optionsStr);
-            
-            // Determine question type
-            String type = options.length == 2 && options[0].contains("True") ? "TF" : "MCQ";
-            pstmt.setString(4, type);
-            pstmt.setInt(5, educatorId);
-            pstmt.executeUpdate();
-        } catch (java.sql.SQLException e) {
-            System.out.println("Error saving question: " + e.getMessage());
+    // ============ 4. GRADING & ATTEMPTS ============
+    public int gradeQuiz(QuizAttempt attempt) {
+        int score = 0;
+        for (Question q : attempt.getQuiz().getQuestions()) {
+            Character studentAnswer = attempt.getAnswers().get(q.getId());
+            if (studentAnswer != null && studentAnswer == q.getCorrectAnswer()) {
+                score++;
+            }
+        }
+        attempt.setScore(score);
+        saveAttempt(attempt);
+        return score;
+    }
+
+    private void saveAttempt(QuizAttempt attempt) {
+        try (Connection conn = DataStore.connect()) {
+            conn.setAutoCommit(false);
+            try {
+                String sql1 = "INSERT INTO QuizScores (studentName, questionId, selectedAnswer) VALUES (?, ?, ?)";
+                try (PreparedStatement pstmt = conn.prepareStatement(sql1)) {
+                    for (Question q : attempt.getQuiz().getQuestions()) {
+                        Character ans = attempt.getAnswers().get(q.getId());
+                        pstmt.setString(1, attempt.getStudentName());
+                        pstmt.setInt(2, q.getId());
+                        pstmt.setString(3, ans != null ? ans.toString() : " ");
+                        pstmt.addBatch();
+                    }
+                    pstmt.executeBatch();
+                }
+
+                double percentage = (double) attempt.getScore() / attempt.getQuiz().getQuestions().size() * 100;
+                String sql2 = "INSERT INTO QuizScores (studentName, totalScore, totalQuestions, percentage) VALUES (?, ?, ?, ?)";
+                try (PreparedStatement pstmt2 = conn.prepareStatement(sql2)) {
+                    pstmt2.setString(1, attempt.getStudentName());
+                    pstmt2.setInt(2, attempt.getScore());
+                    pstmt2.setInt(3, attempt.getQuiz().getQuestions().size());
+                    pstmt2.setDouble(4, percentage);
+                    pstmt2.executeUpdate();
+                }
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            }
+        } catch (SQLException e) { 
+            System.err.println("Error saving attempt: " + e.getMessage());
         }
     }
 
-    public List<Question> getAllQuestions() {
-        return new ArrayList<>();
-    }
-
-    public void printAllStudents() {
-        // Implementation for printing all students
-    }
-
+    // ============ 5. STATISTICS ============
     public void printStudentStatistics(String studentName) {
         // Implementation for printing student statistics
     }

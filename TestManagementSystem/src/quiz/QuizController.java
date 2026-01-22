@@ -40,8 +40,7 @@ public class QuizController {
                 int choice = Integer.parseInt(input);
                 
                 switch (choice) {
-                    // Pass the user's name to match the displayStudentResults(String studentName) method in DataStore
-                    case 1 -> quizManager.viewResults(sc, user.getName());
+                    // case 1 -> quizManager.viewResults(sc, user.getName());
                     case 2 -> {
                         ds.displayAvailableTeachers(); 
                         System.out.print("\nEnter the Teacher ID to take their quiz: ");

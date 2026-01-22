@@ -46,6 +46,7 @@ public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) 
         while (true) {
             System.out.println("\nSelect question type:");
             System.out.println("0. Exit");
+            System.out.println("0. Exit");
             System.out.println("1. Multiple Choice Question (MCQ)");
             System.out.println("2. True/False Question");
             System.out.print("Choose (1-2): ");
@@ -57,6 +58,9 @@ public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) 
             } else if (typeChoice.equals("2")) {
                 addTrueFalseQuestion(sc, educatorId); // Pass educatorId
             } 
+            else if(typeChoice.equals("0")) {
+                break;
+            }
             else if(typeChoice.equals("0")) {
                 break;
             }
@@ -243,10 +247,11 @@ public void printStudentResults(String studentName) {
 }
     
     // Keep existing method for backward compatibility
-    public void viewResults(Scanner sc, String studentName) {
+    public void viewResults(Scanner sc) {
         System.out.println("\n=== VIEW QUIZ RESULTS ===");
         
         System.out.print("Enter student name to view results: ");
+        String studentName = sc.nextLine();
         
         System.out.println("\n" + "=".repeat(50));
         System.out.println("RESULTS FOR: " + studentName);

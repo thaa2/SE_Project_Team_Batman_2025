@@ -11,109 +11,79 @@ import quiz.Question;
 import student.Student;
 
 public class DataStore {
-    static final String url = "jdbc:sqlite:C:\\Users\\LENOVO\\Downloads\\School.db";
-    
-    static {
-        // Database file is located in Downloads folder
-        File dbFile = new File("C:\\Users\\LENOVO\\Downloads\\School.db");
-    }
+    static final String url = "jdbc:sqlite:School.db";
 
     public void createTables() {
-        // Fix: Use consistent naming. I've changed 'uers' to 'users' and 'uers_id' to 'user_id'
-        String sqlUsers = "CREATE TABLE IF NOT EXISTS user (" +
-                          "user_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                          "name TEXT NOT NULL, " +
-                          "age INTEGER, " +
-                          "gender TEXT, " +
-                          "birthDate TEXT, " +
-                          "email TEXT UNIQUE NOT NULL, " +
-                          "password TEXT NOT NULL, " +
-                          "role TEXT NOT NULL)";
-
-        String sqlEnrollments = "CREATE TABLE IF NOT EXISTS Enrollments (" +
-                                "student_id INTEGER, " +
-                                "course_id INTEGER, " +
-                                "PRIMARY KEY (student_id, course_id), " +
-                                "FOREIGN KEY(student_id) REFERENCES user(user_id), " + 
-                                "FOREIGN KEY(course_id) REFERENCES Courses(id))";
-
+        // 1. Define all SQL strings at the beginning to avoid "cannot be resolved" errors
         String sqlCourses = "CREATE TABLE IF NOT EXISTS Courses (" +
-                            "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                            "course_name TEXT NOT NULL, " +
-                            "lesson_content TEXT, " + 
-                            "educator_id INTEGER, " +
-                            "FOREIGN KEY(educator_id) REFERENCES user(user_id))";
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "course_name TEXT NOT NULL, " +
+                        "lesson_content TEXT, " + // NEW: Column for lesson text
+                        "educator_id INTEGER, " +
+                        "FOREIGN KEY(educator_id) REFERENCES user(uers_id))";
 
-        String sqlQuestions = "CREATE TABLE IF NOT EXISTS Questions (" +
-                            "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                            "text TEXT NOT NULL, " +
-                            "correctAnswer TEXT, " +
-                            "options TEXT, " +
-                            "question_type TEXT, " +
-                            "educator_id INTEGER, " +
-                            "course_id INTEGER, " +
-                            "FOREIGN KEY(educator_id) REFERENCES user(user_id), " +
-                            "FOREIGN KEY(course_id) REFERENCES Courses(id))";
+    String sqlQuestions = "CREATE TABLE IF NOT EXISTS Questions (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "text TEXT NOT NULL, " +
+                    "optionA TEXT, optionB TEXT, optionC TEXT, optionD TEXT, optionE TEXT, " +
+                    "correctAnswer TEXT, " +
+                    "questionType TEXT, " +
+                    "numberOfOptions INTEGER, " +
+                    "educator_id INTEGER, " +
+                    "course_id INTEGER, " + // Add this line!
+                    "FOREIGN KEY(educator_id) REFERENCES user(uers_id), " +
+                    "FOREIGN KEY(course_id) REFERENCES Courses(id))"; // Good practice for linking
 
         String sqlScores = "CREATE TABLE IF NOT EXISTS QuizScores (" +
-                            "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                            "studentName TEXT, " +
-                            "totalScore INTEGER, " +
-                            "totalQuestions INTEGER, " +
-                            "percentage REAL, " +
-                            "attemptDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP)";
-
-        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "studentName TEXT, " +
+                        "totalScore INTEGER, " +
+                        "totalQuestions INTEGER, " +
+                        "percentage REAL, " +
+                        "attemptDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP)";      
+        try (Connection conn = connect();Statement stmt = conn.createStatement()) {
             
-            stmt.execute(sqlUsers);
             stmt.execute(sqlCourses);
             stmt.execute(sqlQuestions);
             stmt.execute(sqlScores);
-            stmt.execute(sqlEnrollments);
             
-            // Add missing columns if they don't exist (for backward compatibility)
-            try {
-                stmt.execute("ALTER TABLE Questions ADD COLUMN options TEXT");
-            } catch (SQLException e) {
-                // Column already exists, ignore
-            }
-            try {
-                stmt.execute("ALTER TABLE Questions ADD COLUMN question_type TEXT");
-            } catch (SQLException e) {
-                // Column already exists, ignore
-            }
+            System.out.println("All database tables checked/created successfully.");
             
-            System.out.println("✓ All database tables synced successfully.");
         } catch (SQLException e) {
-            System.out.println("Database Error: " + e.getMessage());
+            System.out.println("Error creating tables: " + e.getMessage());
         }
     }
-
-    public static Connection connect() {
-        try {
-            Class.forName("org.sqlite.JDBC"); // This fixes the "Driver Not Found" error
-            return DriverManager.getConnection(url);
-        } catch (ClassNotFoundException | SQLException e) {
-            System.out.println("Database Connection Failed: " + e.getMessage());
-            return null;
-        }
-    }
-
-    // This method allows the Student to see which teachers they can take a quiz from
     public void displayAvailableTeachers() {
+        // We use uers_id to match your database typo in the screenshot
         String sql = "SELECT user_id, name FROM user WHERE role = 'EDUCATOR'";
         try (Connection conn = connect();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql)) {
             
             System.out.println("\n--- Available Teachers ---");
+            System.out.printf("%-5s | %-20s\n", "ID", "Name");
             while (rs.next()) {
-                System.out.println("ID: " + rs.getInt("user_id") + " | Name: " + rs.getString("name"));
+                System.out.printf("%-5d | %-20s\n", rs.getInt("user_id"), rs.getString("name"));
             }
         } catch (SQLException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("Error displaying teachers: " + e.getMessage());
         }
     }
+
+        
+    public static Connection connect() {
+        Connection connection = null;
+        try {
+            Class.forName("org.sqlite.JDBC");
+            connection = DriverManager.getConnection(url);
+        } catch (ClassNotFoundException e) {
+            System.out.println("SQLite Driver not found: " + e.getMessage());
+        } catch (SQLException e) {
+            System.out.println("Connection error: " + e.getMessage());
+        }
+        return connection;
+    }
+
     public List<Question> getQuestionsByEducator(int teacherId) {
         List<Question> questions = new ArrayList<>();
         // Note: Ensure your Questions table column is named educator_id
@@ -137,9 +107,10 @@ public class DataStore {
         return questions;
     }
 
-    public void role(String role, int id , String name, String gender){
-        if(role.equals("Student")){
-            String sql = "INSERT INTO teacher (s_id, name, gender) VALUES (?, ?, ?)";
+    public void role(String role, String name, String gender,int id) throws SQLException{
+
+        if(role.equalsIgnoreCase("STUDENT")){
+            String sql = "INSERT INTO student (stu_id, name, gender) VALUES (?, ?, ?)";
             try (Connection connection = connect();
                 PreparedStatement pstmt = connection.prepareStatement(sql)) {
                 String t_id = "S" + id;
@@ -147,13 +118,12 @@ public class DataStore {
                 pstmt.setString(1, t_id);
                 pstmt.setString(2, name);
                 pstmt.setString(3, gender);
-                System.out.println("User inserted successfully!");
-            } catch (SQLException e) {
-                System.out.println("Error inserting user: " + e.getMessage());
+                pstmt.executeUpdate(); // <--- ADD THIS LINE TO SAVE
+                System.out.println("Student saved!");
             }
         }
-        else if (role.equals("Educator")){
-            String sql = "INSERT INTO teacher (t_id, name, gender) VALUES (?, ?, ?)";
+        else if (role.equalsIgnoreCase("EDUCATOR")){
+            String sql = "INSERT INTO teacher (teacher_id, name, gender) VALUES (?, ?, ?)";
             try (Connection connection = connect();
                 PreparedStatement pstmt = connection.prepareStatement(sql)) {
                 String t_id = "T" + id;
@@ -161,26 +131,22 @@ public class DataStore {
                 pstmt.setString(1, t_id);
                 pstmt.setString(2, name);
                 pstmt.setString(3, gender);
-                System.out.println("User inserted successfully!");
-            } catch (SQLException e) {
-                System.out.println("Error inserting user: " + e.getMessage());
-            }
+                pstmt.executeUpdate(); // <--- ADD THIS LINE TO SAVE
+                System.out.println("Student saved!");
+                
+            } 
         }
-        
     }
-
-    
-
     public void viweResult(){
 
     }
 
-    
-
     public void InsertUser(String name, int age, String gender, String birthDate, String email, String password, String role) {
+        // 1. Add Statement.RETURN_GENERATED_KEYS to the first prepareStatement
         String sql = "INSERT INTO user (name, age, gender, birthDate, email, password, role) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        
         try (Connection connection = connect();
-             PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             pstmt.setString(1, name);
             pstmt.setInt(2, age);
@@ -189,8 +155,20 @@ public class DataStore {
             pstmt.setString(5, email);
             pstmt.setString(6, password);
             pstmt.setString(7, role);
+            
             pstmt.executeUpdate();
             System.out.println("User inserted successfully!");
+
+            // 2. Get the ID directly from the pstmt that just finished
+            try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    int newId = rs.getInt(1); 
+                    System.out.println("Generated User ID: " + newId);
+                    
+                    // 3. Pass that real ID to your role method
+                    role(role, name, gender, newId); 
+                }
+            }
         } catch (SQLException e) {
             System.out.println("Error inserting user: " + e.getMessage());
         }
@@ -242,26 +220,26 @@ public class DataStore {
             System.out.println("Error printing educators: " + e.getMessage());
         }
     }
-public void insertQuestion(Question question, int educatorId, int courseId) {
-    String sql = "INSERT INTO Questions (text, correctAnswer, educator_id, course_id) VALUES (?, ?, ?, ?)";
-    
-    try (Connection conn = connect();
-         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+    public void insertQuestion(Question question, int educatorId, int courseId) {
+        String sql = "INSERT INTO Questions (text, correctAnswer, educator_id, course_id) VALUES (?, ?, ?, ?)";
         
-        pstmt.setString(1, question.getText());
-        pstmt.setString(2, String.valueOf(question.getCorrectAnswer()));
-        pstmt.setInt(3, educatorId);
-        pstmt.setInt(4, courseId); // Save the Course ID here
-        
-        pstmt.executeUpdate();
-        System.out.println("✓ Question linked to Course ID: " + courseId);
-    } catch (SQLException e) {
-        System.out.println("Error saving question: " + e.getMessage());
+        try (Connection conn = connect();
+            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, question.getText());
+            pstmt.setString(2, String.valueOf(question.getCorrectAnswer()));
+            pstmt.setInt(3, educatorId);
+            pstmt.setInt(4, courseId); // Save the Course ID here
+            
+            pstmt.executeUpdate();
+            System.out.println("✓ Question linked to Course ID: " + courseId);
+        } catch (SQLException e) {
+            System.out.println("Error saving question: " + e.getMessage());
+        }
     }
-}
 
 // ============ STUDENT RESULTS METHODS ============
-
 public void saveQuizResult(String studentName, int totalScore, int totalQuestions) {
     String sql = "INSERT INTO QuizScores (studentName, totalScore, totalQuestions, percentage) VALUES (?, ?, ?, ?)";
     

@@ -57,7 +57,7 @@ public class DatabaseManager {
             
             // Create QuizResults table
             stmt.executeUpdate(
-                "CREATE TABLE IF NOT EXISTS QuizResults (" +
+                "CREATE TABLE IF NOT EXISTS QuizScores (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 "studentName TEXT NOT NULL," +
                 "questionId INTEGER NOT NULL," +

@@ -2,14 +2,12 @@ package main;
 
 import java.util.Scanner;
 import auth.*;
-import quiz.*; // Ensure this is imported
+import quiz.QuizController;
 import util.DataStore;
-
 public class Main {
 
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-
         DataStore ds = new DataStore();
         ds.createTables(); // This ensures 'Questions' table exists before anyone tries to load it
         while (true) {

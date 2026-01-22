@@ -2,8 +2,6 @@ package auth;
 
 import java.util.Scanner;
 import util.DataStore;
-import student.Student;
-import educator.Educator;
 
 public class Login {
     private Scanner scanner;
@@ -48,5 +46,6 @@ public class Login {
             System.out.println("Invalid email or password.");
             return null; 
         }
+        
     }
 }

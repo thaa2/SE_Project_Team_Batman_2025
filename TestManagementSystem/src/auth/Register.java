@@ -1,10 +1,8 @@
 package auth;
-
 import java.util.Scanner;
 import educator.Educator;
 import student.Student;
 import util.DataStore;
-
 public class Register {
     private Scanner scanner;
 
@@ -12,11 +10,15 @@ public class Register {
         this.scanner = scanner;
     }
 
+    public static void main(String[] args) {
+        Register rs = new Register();
+        rs.registerInfo();
+    }
     public void registerInfo() {
         Scanner input = scanner;
 
+        Scanner input = new Scanner(System.in);
         System.out.println("=== Test Management System Registration ===");
-
         // 1. NAME
         String name;
         while (true) {
@@ -76,7 +78,6 @@ public class Register {
             if (password.length() >= 8 && password.matches(".*\\d.*")) break;
             System.out.println("Password must be >= 8 characters and include a number.");
         }
-
         // ... (previous validation code remains the same)
 
         // 7. ROLE & OBJECT CREATION
@@ -109,11 +110,10 @@ public class Register {
             System.out.println("Invalid choice. Enter 1 or 2.");
             // Remove the extra input.nextLine() here to avoid double-skipping
         }
-
+        input.close();
         // 8. SAVE TO DATABASE
         DataStore dataStore = new DataStore();
         dataStore.InsertUser(name, age, gender, birthDate, email, password, selectedRole);
         System.out.println("Registration Successful!");
-
     }
 }

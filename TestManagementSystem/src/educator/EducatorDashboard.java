@@ -2,8 +2,6 @@ package educator;
 
 import java.util.Scanner;
 
-import quiz.QuizController;
-
 public class EducatorDashboard {
 
     public void showMenu() {
@@ -36,7 +34,7 @@ public class EducatorDashboard {
                     break;
                 case 3:
                     System.out.println("Create quiz");
-                    System.out.println("Please use the Quiz Module to create a quiz.");
+                    // QuizController.addQuestions(sc);
                     break;
                 case 4:
                     System.out.println("View results");
@@ -48,5 +46,6 @@ public class EducatorDashboard {
                     System.out.println("Invalid choice.");
             }
         } while (choice != 0);
+        sc.close();
     }
 }
