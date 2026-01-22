@@ -5,20 +5,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import auth.*;
-import educator.Educator;
-import quiz.Question;
-import student.Student;
+import educator.*;
+import quiz.*;
+import student.*;
 
 public class DataStore {
-    // FIXED: Use forward slashes or escaped backslashes
-    // Option 1: Forward slashes (recommended)
+
     static final String url = "jdbc:sqlite:School.db";
-    
-    // Option 2: Escaped backslashes (alternative)
-    // static final String url = "jdbc:sqlite:C:\\School.db";
-    
-    // Option 3: Relative path (creates database in project folder)
-    // static final String url = "jdbc:sqlite:School.db";
 
     public void createTables() {
         Connection conn = connect();
@@ -98,7 +91,7 @@ public class DataStore {
             stmt.execute(sqlEnrollments);
             stmt.execute(sqlTeacher);
             
-            System.out.println("✓ All database tables checked/created successfully.");
+            System.out.println("All database tables checked/created successfully.");
             
         } catch (SQLException e) {
             System.out.println("Error creating tables: " + e.getMessage());
@@ -134,13 +127,13 @@ public class DataStore {
         try {
             Class.forName("org.sqlite.JDBC");
             connection = DriverManager.getConnection(url);
-            System.out.println("✓ Database connected successfully!");
+            System.out.println("Database connected successfully!");
         } catch (ClassNotFoundException e) {
-            System.out.println("❌ SQLite Driver not found: " + e.getMessage());
+            System.out.println("SQLite Driver not found: " + e.getMessage());
             System.out.println("Make sure sqlite-jdbc.jar is in your classpath!");
             e.printStackTrace();
         } catch (SQLException e) {
-            System.out.println("❌ Connection error: " + e.getMessage());
+            System.out.println("Connection error: " + e.getMessage());
             System.out.println("Check database path: " + url);
             e.printStackTrace();
         }
