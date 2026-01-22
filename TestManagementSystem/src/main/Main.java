@@ -5,7 +5,7 @@ import auth.*;
 import quiz.QuizController;
 import util.DataStore;
 public class Main {
-
+    
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         DataStore ds = new DataStore();

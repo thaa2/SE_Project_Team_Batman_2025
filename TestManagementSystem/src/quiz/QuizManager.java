@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Scanner;
 import java.sql.Statement;
+import quiz.*;
 
 import util.DataStore;
 
@@ -167,7 +168,7 @@ public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) 
         System.out.println("\n=== ATTEMPT QUIZ ===");
         
         var questions = quizService.getAllQuestions();
-        if (questions.isEmpty()) {
+        if (((String) questions).isEmpty()) {
             System.out.println("No questions available in the database!");
             System.out.println("Please add questions first (Option 1).");
             return;
@@ -177,9 +178,9 @@ public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) 
         String studentName = sc.nextLine();
         
         Quiz quiz = new Quiz("Quiz from Database");
-        for (Question q : questions) {
-            quiz.addQuestion(q);
-        }
+        // for (Question q : questions) {
+        //     quiz.addQuestion(q);
+        // }
         
         QuizAttempt attempt = new QuizAttempt(studentName, quiz, sc, quizService);
         attempt.executeAttempt();

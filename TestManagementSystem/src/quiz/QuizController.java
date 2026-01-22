@@ -40,7 +40,7 @@ public class QuizController {
                 int choice = Integer.parseInt(input);
                 
                 switch (choice) {
-                    // case 1 -> quizManager.viewResults(sc, user.getName());
+                    case 1 -> quizManager.viewResults(sc);
                     case 2 -> {
                         ds.displayAvailableTeachers(); 
                         System.out.print("\nEnter the Teacher ID to take their quiz: ");

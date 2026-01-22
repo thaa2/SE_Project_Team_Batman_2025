@@ -11,28 +11,40 @@ import quiz.Question;
 import student.Student;
 
 public class DataStore {
-    static final String url = "jdbc:sqlite:School.db";
+    static final String url = "jdbc:sqlite:C:\\Users\\LENOVO\\Downloads\\School.db";
 
     public void createTables() {
         // 1. Define all SQL strings at the beginning to avoid "cannot be resolved" errors
+        String sqlUser = "CREATE TABLE IF NOT EXISTS user (" +
+                        "user_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "name TEXT NOT NULL, " +
+                        "age INTEGER, " +
+                        "gender TEXT, " +
+                        "birthDate TEXT, " +
+                        "email TEXT UNIQUE NOT NULL, " +
+                        "password TEXT NOT NULL, " +
+                        "role TEXT NOT NULL)";
+
         String sqlCourses = "CREATE TABLE IF NOT EXISTS Courses (" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                         "course_name TEXT NOT NULL, " +
-                        "lesson_content TEXT, " + // NEW: Column for lesson text
+                        "lesson_content TEXT, " +
                         "educator_id INTEGER, " +
-                        "FOREIGN KEY(educator_id) REFERENCES user(uers_id))";
+                        "FOREIGN KEY(educator_id) REFERENCES user(user_id))";
 
-    String sqlQuestions = "CREATE TABLE IF NOT EXISTS Questions (" +
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "text TEXT NOT NULL, " +
-                    "optionA TEXT, optionB TEXT, optionC TEXT, optionD TEXT, optionE TEXT, " +
-                    "correctAnswer TEXT, " +
-                    "questionType TEXT, " +
-                    "numberOfOptions INTEGER, " +
-                    "educator_id INTEGER, " +
-                    "course_id INTEGER, " + // Add this line!
-                    "FOREIGN KEY(educator_id) REFERENCES user(uers_id), " +
-                    "FOREIGN KEY(course_id) REFERENCES Courses(id))"; // Good practice for linking
+        String sqlQuestions = "CREATE TABLE IF NOT EXISTS Questions (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "text TEXT NOT NULL, " +
+                        "optionA TEXT, optionB TEXT, optionC TEXT, optionD TEXT, optionE TEXT, " +
+                        "options TEXT, " +
+                        "correctAnswer TEXT, " +
+                        "question_type TEXT, " +
+                        "questionType TEXT, " +
+                        "numberOfOptions INTEGER, " +
+                        "educator_id INTEGER, " +
+                        "course_id INTEGER, " +
+                        "FOREIGN KEY(educator_id) REFERENCES user(user_id), " +
+                        "FOREIGN KEY(course_id) REFERENCES Courses(id))";
 
         String sqlScores = "CREATE TABLE IF NOT EXISTS QuizScores (" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -40,12 +52,39 @@ public class DataStore {
                         "totalScore INTEGER, " +
                         "totalQuestions INTEGER, " +
                         "percentage REAL, " +
-                        "attemptDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP)";      
+                        "attemptDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP)";
+        
+        String sqlStudent = "CREATE TABLE IF NOT EXISTS student (" +
+                        "student_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "user_id INTEGER UNIQUE, " +
+                        "gpa REAL, " +
+                        "major TEXT, " +
+                        "FOREIGN KEY(user_id) REFERENCES user(user_id))";
+        
+        String sqlEnrollments = "CREATE TABLE IF NOT EXISTS Enrollments (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "student_id INTEGER, " +
+                        "course_id INTEGER, " +
+                        "enrollment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                        "FOREIGN KEY(student_id) REFERENCES student(student_id), " +
+                        "FOREIGN KEY(course_id) REFERENCES Courses(id))";
+        
+        String sqlTeacher = "CREATE TABLE IF NOT EXISTS teacher (" +
+                        "teacher_id TEXT PRIMARY KEY, " +
+                        "user_id INTEGER UNIQUE, " +
+                        "name TEXT, " +
+                        "gender TEXT, " +
+                        "FOREIGN KEY(user_id) REFERENCES user(user_id))";
+        
         try (Connection conn = connect();Statement stmt = conn.createStatement()) {
             
+            stmt.execute(sqlUser);
             stmt.execute(sqlCourses);
             stmt.execute(sqlQuestions);
             stmt.execute(sqlScores);
+            stmt.execute(sqlStudent);
+            stmt.execute(sqlEnrollments);
+            stmt.execute(sqlTeacher);
             
             System.out.println("All database tables checked/created successfully.");
             
@@ -110,14 +149,15 @@ public class DataStore {
     public void role(String role, String name, String gender,int id) throws SQLException{
 
         if(role.equalsIgnoreCase("STUDENT")){
-            String sql = "INSERT INTO student (stu_id, name, gender) VALUES (?, ?, ?)";
+            String sql = "INSERT INTO student (student_id, user_id, name, gender) VALUES (?, ?, ?, ?)";
             try (Connection connection = connect();
                 PreparedStatement pstmt = connection.prepareStatement(sql)) {
                 String t_id = "S" + id;
                 
                 pstmt.setString(1, t_id);
-                pstmt.setString(2, name);
-                pstmt.setString(3, gender);
+                pstmt.setInt(2, id);
+                pstmt.setString(3, name);
+                pstmt.setString(4, gender);
                 pstmt.executeUpdate(); // <--- ADD THIS LINE TO SAVE
                 System.out.println("Student saved!");
             }

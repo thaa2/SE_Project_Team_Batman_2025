@@ -1,10 +1,12 @@
 package quiz;
 
 import java.io.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.*;
-import quiz.QuizAttempt;
-import quiz.Question;
-import quiz.Quiz;
+import util.*;
+
 
 public class QuizService {
 
@@ -141,5 +143,36 @@ public class QuizService {
         // Call DataStore to display results from database
         util.DataStore dataStore = new util.DataStore();
         dataStore.displayStudentResults(studentName);
+    }
+
+    public void printAllStudents() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'printAllStudents'");
+    }
+
+    public void saveQuestion(Question question, int educatorId) {
+        String sql = "INSERT INTO Questions (text, options, correctAnswer, question_type, educator_id) VALUES (?, ?, ?, ?, ?)";
+        try (Connection conn = DataStore.connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            String[] options = question.getOptions();
+            String optionsStr = String.join("|", options);
+            
+            pstmt.setString(1, question.getText());
+            pstmt.setString(2, optionsStr);
+            pstmt.setString(3, String.valueOf(question.getCorrectAnswer()));
+            pstmt.setString(4, "MCQ");
+            pstmt.setInt(5, educatorId);
+            
+            pstmt.executeUpdate();
+            System.out.println("Question saved successfully!");
+        } catch (SQLException e) {
+            System.out.println("Error saving question: " + e.getMessage());
+        }
+    }
+
+    public Object getAllQuestions() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getAllQuestions'");
     }
 }
