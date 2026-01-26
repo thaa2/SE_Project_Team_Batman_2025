@@ -47,10 +47,10 @@ public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) 
         while (true) {
             System.out.println("\nSelect question type:");
             System.out.println("0. Exit");
-            System.out.println("0. Exit");
             System.out.println("1. Multiple Choice Question (MCQ)");
             System.out.println("2. True/False Question");
-            System.out.print("Choose (1-2): ");
+            System.out.println("3. Short Answer Question");
+            System.out.print("Choose (1-3): ");
             
             String typeChoice = sc.nextLine();
             
@@ -58,9 +58,8 @@ public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) 
                 addMCQQuestion(sc, educatorId); // Pass educatorId
             } else if (typeChoice.equals("2")) {
                 addTrueFalseQuestion(sc, educatorId); // Pass educatorId
-            } 
-            else if(typeChoice.equals("0")) {
-                break;
+            } else if (typeChoice.equals("3")) {
+                addShortAnswerQuestion(sc, educatorId); // Pass educatorId
             }
             else if(typeChoice.equals("0")) {
                 break;
@@ -78,6 +77,21 @@ public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) 
         }
     }
     
+private void addShortAnswerQuestion(Scanner sc, int educatorId) {
+    System.out.println("\n--- Add Short Answer Question ---");
+    System.out.print("Enter question text: ");
+    String text = sc.nextLine().trim();
+    
+    System.out.print("Enter the correct answer (word/phrase): ");
+    String correctWord = sc.nextLine().trim();
+
+    // Use null for options since Short Answer doesn't have choices
+    Question question = new Question(0, text, null, correctWord, "SHORT"); 
+    
+    // Call your insert method with the type "SHORT"
+    quizService.saveQuestion(question, educatorId); 
+}
+
     private void addMCQQuestion(Scanner sc, int educatorId) {
         System.out.println("\n--- Add Multiple Choice Question ---");
         
@@ -129,7 +143,7 @@ public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) 
         }
 
         // STEP 4 FIX: Pass the educatorId to the save method
-        Question question = new Question(0, text, options, correct);
+        Question question = new Question(0, text, options, String.valueOf(correct), "MCQ");
         quizService.saveQuestion(question, educatorId); 
         System.out.println("✓ MCQ question added successfully!");
     }
@@ -159,7 +173,7 @@ public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) 
         }
 
         // STEP 4 FIX: Pass the educatorId to the save method
-        Question question = new Question(0, text, correct);
+Question question = new Question(0, text, String.valueOf(correct), "TF");
         quizService.saveQuestion(question, educatorId); 
         System.out.println("✓ True/False question added successfully!");
     }

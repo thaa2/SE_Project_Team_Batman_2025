@@ -20,6 +20,7 @@ public class DataStore {
             return;
         }
         
+        
         // Define all SQL strings
         String sqlUser = "CREATE TABLE IF NOT EXISTS user (" +
                         "uers_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -39,18 +40,15 @@ public class DataStore {
                         "FOREIGN KEY(educator_id) REFERENCES user(uers_id))";
 
         String sqlQuestions = "CREATE TABLE IF NOT EXISTS Questions (" +
-                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                        "text TEXT NOT NULL, " +
-                        "optionA TEXT, optionB TEXT, optionC TEXT, optionD TEXT, optionE TEXT, " +
-                        "options TEXT, " +
-                        "correctAnswer TEXT, " +
-                        "question_type TEXT, " +
-                        "questionType TEXT, " +
-                        "numberOfOptions INTEGER, " +
-                        "educator_id INTEGER, " +
-                        "course_id INTEGER, " +
-                        "FOREIGN KEY(educator_id) REFERENCES user(uers_id), " +
-                        "FOREIGN KEY(course_id) REFERENCES Courses(id))";
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "text TEXT NOT NULL, " +
+                "options TEXT, " +            
+                "correctAnswer TEXT, " +       
+                "questionType TEXT, " +       
+                "educator_id INTEGER, " +
+                "course_id INTEGER, " +
+                "FOREIGN KEY(educator_id) REFERENCES user(uers_id), " +
+                "FOREIGN KEY(course_id) REFERENCES Courses(id))";
 
         String sqlScores = "CREATE TABLE IF NOT EXISTS QuizScores (" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -150,14 +148,17 @@ public class DataStore {
             pstmt.setInt(1, teacherId);
             ResultSet rs = pstmt.executeQuery();
             
-            while (rs.next()) {
-                int id = rs.getInt("id");
-                String text = rs.getString("text");
-                char correct = rs.getString("correctAnswer").charAt(0);
-                questions.add(new Question(id, text, correct)); 
-            }
-        } catch (SQLException e) { 
-            System.out.println("Error fetching educator questions: " + e.getMessage());
+while (rs.next()) {
+    int id = rs.getInt("id");
+    String text = rs.getString("text");
+    String correct = rs.getString("correctAnswer"); // Get as String, not char
+    String type = rs.getString("questionType");
+    
+    // This now matches the updated Question constructor
+    questions.add(new Question(id, text, correct, type)); 
+}
+        } catch (SQLException e) {
+            System.out.println("Error fetching questions: " + e.getMessage());
             e.printStackTrace();
         }
         return questions;
@@ -278,25 +279,29 @@ public class DataStore {
             e.printStackTrace();
         }
     }
-
-    public void insertQuestion(Question question, int educatorId, int courseId) {
-        String sql = "INSERT INTO Questions (text, correctAnswer, educator_id, course_id) VALUES (?, ?, ?, ?)";
+public void insertQuestion(Question question, int educatorId, int courseId, String type) {
+    String sql = "INSERT INTO Questions (text, options, correctAnswer, questionType, educator_id, course_id) VALUES (?, ?, ?, ?, ?, ?)";
+    
+    try (Connection conn = connect();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
         
-        try (Connection conn = connect();
-            PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setString(1, question.getText());
-            pstmt.setString(2, String.valueOf(question.getCorrectAnswer()));
-            pstmt.setInt(3, educatorId);
-            pstmt.setInt(4, courseId);
-            
-            pstmt.executeUpdate();
-            System.out.println("✓ Question linked to Course ID: " + courseId);
-        } catch (SQLException e) {
-            System.out.println("Error saving question: " + e.getMessage());
-            e.printStackTrace();
-        }
+        pstmt.setString(1, question.getText());
+        
+        // If it's a short answer, options are null. 
+        // For MCQ, you'd join your options array into a single string here.
+        pstmt.setString(2, (question.getOptions() != null) ? String.join("|", question.getOptions()) : null);
+        
+        pstmt.setString(3, question.getCorrectAnswerString()); // Ensure Question class has this
+        pstmt.setString(4, type); 
+        pstmt.setInt(5, educatorId);
+        pstmt.setInt(6, courseId);
+        
+        pstmt.executeUpdate();
+        System.out.println("✓ " + type + " Question saved!");
+    } catch (SQLException e) {
+        System.out.println("Error saving question: " + e.getMessage());
     }
+}
 
     public void saveQuizResult(String studentName, int totalScore, int totalQuestions) {
         String sql = "INSERT INTO QuizScores (studentName, totalScore, totalQuestions, percentage) VALUES (?, ?, ?, ?)";

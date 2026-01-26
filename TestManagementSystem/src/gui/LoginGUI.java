@@ -20,6 +20,8 @@ public class LoginGUI extends JFrame {
 
     private void initializeUI() {
         setTitle("Test Management System - Login");
+        ImageIcon icon = new ImageIcon(getClass().getResource("logo.png"));
+        setIconImage(icon.getImage());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(450, 550);
         setLocationRelativeTo(null);

@@ -22,6 +22,8 @@ public class RegisterGUI extends JFrame {
 
     private void initializeUI() {
         setTitle("Test Management System - Register");
+        ImageIcon icon = new ImageIcon(getClass().getResource("logo.png"));
+        setIconImage(icon.getImage());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(500, 750);
         setLocationRelativeTo(null);
