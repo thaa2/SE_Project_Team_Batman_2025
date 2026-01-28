@@ -10,56 +10,134 @@ import java.sql.Statement;
 // import quiz.*;
 
 import util.DataStore;
+import course.CourseManager;
 
 public class QuizManager {
     private final QuizService quizService;
+    private final course.CourseManager courseManager;
     
     public QuizManager(QuizService quizService) {
         this.quizService = quizService;
+        this.courseManager = new course.CourseManager();
     }
 // Inside QuizManager.java
 
 public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) {
-    // 1. Get ONLY this teacher's questions
-    List<Question> teacherQuestions = quizService.getQuestionsByTeacher(teacherId);
+    System.out.println("\n--- Show Courses from Teacher ---");
+    
+    // Display teacher's courses
+    String sql = "SELECT id, course_name FROM Courses WHERE educator_id = ? ORDER BY id ASC";
+    java.util.List<Integer> courseIds = new java.util.ArrayList<>();
+    java.util.List<String> courseNames = new java.util.ArrayList<>();
+    
+    try (Connection conn = DataStore.connect();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setInt(1, teacherId);
+        ResultSet rs = pstmt.executeQuery();
+        
+        System.out.println("\n=== Available Courses for This Teacher ===");
+        System.out.printf("%-5s | %-30s\n", "ID", "Course Name");
+        System.out.println("-".repeat(40));
+        
+        while (rs.next()) {
+            int courseId = rs.getInt("id");
+            String courseName = rs.getString("course_name");
+            courseIds.add(courseId);
+            courseNames.add(courseName);
+            System.out.printf("%-5d | %-30s\n", courseId, courseName);
+        }
+        
+        System.out.println("0     | General Questions (No Course)");
+    } catch (SQLException e) {
+        System.out.println("Error fetching courses: " + e.getMessage());
+    }
+    
+    // Ask which course to take quiz for
+    System.out.print("\nEnter Course ID to take quiz (or 0 for general questions): ");
+    int selectedCourseId = 0;
+    try {
+        selectedCourseId = Integer.parseInt(sc.nextLine());
+    } catch (NumberFormatException e) {
+        System.out.println("Invalid input, using general questions.");
+        selectedCourseId = 0;
+    }
+    
+    // Get questions based on selection
+    List<Question> teacherQuestions;
+    String quizTitle;
+    
+    if (selectedCourseId > 0) {
+        teacherQuestions = quizService.getQuestionsByTeacherAndCourse(teacherId, selectedCourseId);
+        // Find the course name for the selected course ID
+        String selectedCourseName = "Course " + selectedCourseId;
+        for (int i = 0; i < courseIds.size(); i++) {
+            if (courseIds.get(i) == selectedCourseId) {
+                selectedCourseName = courseNames.get(i);
+                break;
+            }
+        }
+        quizTitle = "Course Quiz - " + selectedCourseName;
+    } else {
+        teacherQuestions = quizService.getQuestionsByTeacher(teacherId);
+        quizTitle = "General Questions from Teacher";
+    }
 
     if (teacherQuestions.isEmpty()) {
-        System.out.println("This teacher has no questions available yet.");
+        System.out.println("\nNo questions available for the selected option.");
         return;
     }
 
-    // 2. Build a Quiz object using ONLY those questions
-    Quiz quiz = new Quiz("Teacher's Quiz");
+    // Build a Quiz object using the filtered questions
+    Quiz quiz = new Quiz(quizTitle);
     for (Question q : teacherQuestions) {
         quiz.addQuestion(q);
     }
 
-    // 3. Start the attempt with THIS filtered quiz
+    // Start the attempt with THIS filtered quiz
     QuizAttempt attempt = new QuizAttempt(studentName, quiz, sc, quizService);
     attempt.executeAttempt();
 }
     
     // ============ UPDATED ADD QUESTIONS METHOD ============
-    // Added educatorId parameter here
+    // Added educatorId parameter and course selection
     public void addQuestions(Scanner sc, int educatorId) {
         System.out.println("\n=== ADD NEW QUESTIONS ===");
+        System.out.println("\nDo you want to add questions to a specific course?");
+        System.out.println("1. Add to a specific course");
+        System.out.println("2. Add general questions (not linked to course)");
+        System.out.print("Choose (1-2): ");
+        String courseChoice = sc.nextLine().trim();
         
+        int courseId = 0;
+        if (courseChoice.equals("1")) {
+            // Show educator's courses
+            courseManager.viewMyCourses(educatorId);
+            System.out.print("\nEnter Course ID to add questions to (or 0 to skip): ");
+            try {
+                courseId = Integer.parseInt(sc.nextLine());
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input, adding as general questions.");
+                courseId = 0;
+            }
+        }
+        
+        final int finalCourseId = courseId;
         while (true) {
             System.out.println("\nSelect question type:");
             System.out.println("0. Exit");
             System.out.println("1. Multiple Choice Question (MCQ)");
             System.out.println("2. True/False Question");
             System.out.println("3. Short Answer Question");
-            System.out.print("Choose (1-3): ");
+            System.out.print("Choose (0-3): ");
             
             String typeChoice = sc.nextLine();
             
             if (typeChoice.equals("1")) {
-                addMCQQuestion(sc, educatorId); // Pass educatorId
+                addMCQQuestion(sc, educatorId, finalCourseId);
             } else if (typeChoice.equals("2")) {
-                addTrueFalseQuestion(sc, educatorId); // Pass educatorId
+                addTrueFalseQuestion(sc, educatorId, finalCourseId);
             } else if (typeChoice.equals("3")) {
-                addShortAnswerQuestion(sc, educatorId); // Pass educatorId
+                addShortAnswerQuestion(sc, educatorId, finalCourseId);
             }
             else if(typeChoice.equals("0")) {
                 break;
@@ -77,22 +155,19 @@ public void attemptQuizByTeacher(Scanner sc, int teacherId, String studentName) 
         }
     }
     
-private void addShortAnswerQuestion(Scanner sc, int educatorId) {
-    System.out.println("\n--- Add Short Answer Question ---");
-    System.out.print("Enter question text: ");
-    String text = sc.nextLine().trim();
-    
-    System.out.print("Enter the correct answer (word/phrase): ");
-    String correctWord = sc.nextLine().trim();
+    private void addShortAnswerQuestion(Scanner sc, int educatorId, int courseId) {
+        System.out.println("\n--- Add Short Answer Question ---");
+        System.out.print("Enter question text: ");
+        String text = sc.nextLine().trim();
+        
+        System.out.print("Enter the correct answer (word/phrase): ");
+        String correctWord = sc.nextLine().trim();
 
-    // Use null for options since Short Answer doesn't have choices
-    Question question = new Question(0, text, null, correctWord, "SHORT"); 
-    
-    // Call your insert method with the type "SHORT"
-    quizService.saveQuestion(question, educatorId); 
-}
+        Question question = new Question(0, text, correctWord, "SHORT");
+        quizService.saveQuestion(question, educatorId, courseId);
+    }
 
-    private void addMCQQuestion(Scanner sc, int educatorId) {
+    private void addMCQQuestion(Scanner sc, int educatorId, int courseId) {
         System.out.println("\n--- Add Multiple Choice Question ---");
         
         String text;
@@ -128,27 +203,25 @@ private void addShortAnswerQuestion(Scanner sc, int educatorId) {
             }
         }
 
-        char correct;
+        String correct;
         while (true) {
             System.out.print("Correct answer (" + getAnswerRange(numOptions) + "): ");
             String input = sc.nextLine().trim().toUpperCase();
             if (input.length() > 0) {
                 char answer = input.charAt(0);
                 if (answer >= 'A' && answer <= (char)('A' + numOptions - 1)) {
-                    correct = answer;
+                    correct = String.valueOf(answer);
                     break;
                 }
             }
             System.out.println("Invalid input!");
         }
 
-        // STEP 4 FIX: Pass the educatorId to the save method
-        Question question = new Question(0, text, options, String.valueOf(correct), "MCQ");
-        quizService.saveQuestion(question, educatorId); 
-        System.out.println("✓ MCQ question added successfully!");
+        Question question = new Question(0, text, options, correct, "MCQ");
+        quizService.saveQuestion(question, educatorId, courseId);
     }
     
-    private void addTrueFalseQuestion(Scanner sc, int educatorId) {
+    private void addTrueFalseQuestion(Scanner sc, int educatorId, int courseId) {
         System.out.println("\n--- Add True/False Question ---");
         
         String text;
@@ -156,26 +229,25 @@ private void addShortAnswerQuestion(Scanner sc, int educatorId) {
             System.out.print("Enter question text: ");
             text = sc.nextLine().trim();
             if (!text.isEmpty()) break;
+            System.out.println("Question text cannot be empty!");
         }
 
-        char correct;
+        String correct;
         while (true) {
             System.out.print("Correct answer (T for True, F for False): ");
             String input = sc.nextLine().trim().toUpperCase();
             if (input.equals("T") || input.equals("TRUE")) {
-                correct = 'A';
+                correct = "A";
                 break;
             } else if (input.equals("F") || input.equals("FALSE")) {
-                correct = 'B';
+                correct = "B";
                 break;
             }
             System.out.println("Invalid input!");
         }
 
-        // STEP 4 FIX: Pass the educatorId to the save method
-Question question = new Question(0, text, String.valueOf(correct), "TF");
-        quizService.saveQuestion(question, educatorId); 
-        System.out.println("✓ True/False question added successfully!");
+        Question question = new Question(0, text, correct, "TF");
+        quizService.saveQuestion(question, educatorId, courseId);
     }
     
     public void attemptQuiz(Scanner sc) {

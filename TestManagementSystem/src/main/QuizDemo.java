@@ -12,9 +12,9 @@ public class QuizDemo {
         // Create sample questions
         Quiz sampleQuiz = new Quiz("Math Quiz");
         
-        Question q1 = new Question(1, "What is 2 + 2?", new String[]{"A. 3", "B. 4", "C. 5", "D. 6"}, 'B');
-        Question q2 = new Question(2, "What is the capital of France?", new String[]{"A. London", "B. Paris", "C. Berlin", "D. Madrid"}, 'B');
-        Question q3 = new Question(3, "Is the Earth round?", 'A'); // True/False question
+        Question q1 = new Question(1, "What is 2 + 2?", new String[]{"A. 3", "B. 4", "C. 5", "D. 6"}, "B", "MCQ");
+        Question q2 = new Question(2, "What is the capital of France?", new String[]{"A. London", "B. Paris", "C. Berlin", "D. Madrid"}, "B", "MCQ");
+        Question q3 = new Question(3, "Is the Earth round?", "A", "TF"); // True/False question
         
         sampleQuiz.addQuestion(q1);
         sampleQuiz.addQuestion(q2);

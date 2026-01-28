@@ -18,9 +18,10 @@ public class QuizService {
         // Auto-Grading Logic
         for (Question q : questions) {
             Character studentChoice = studentAnswers.get(q.getId());
+            String correctAnswer = q.getCorrectAnswer();
             
             // Compare student input to the Question's answer key
-            if (studentChoice != null && studentChoice == q.getCorrectAnswer()) {
+            if (studentChoice != null && studentChoice.toString().equals(correctAnswer)) {
                 score++;
             }
         }
@@ -59,7 +60,7 @@ public class QuizService {
 
     public List<Question> getQuestionsByTeacher(int teacherId) {
         List<Question> questions = new ArrayList<>();
-        String sql = "SELECT id, text, correctAnswer, options, question_type FROM Questions WHERE educator_id = ?";
+        String sql = "SELECT id, text, correctAnswer, options, questionType FROM Questions WHERE educator_id = ? ORDER BY id ASC";
         try (java.sql.Connection conn = util.DataStore.connect();
              java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, teacherId);
@@ -68,15 +69,52 @@ public class QuizService {
             while (rs.next()) {
                 int id = rs.getInt("id");
                 String text = rs.getString("text");
-                char correctAnswer = rs.getString("correctAnswer").charAt(0);
-                String type = rs.getString("question_type");
+                String correctAnswer = rs.getString("correctAnswer");
+                String type = rs.getString("questionType");
+                String optionsStr = rs.getString("options");
                 
                 if ("MCQ".equals(type)) {
-                    String optionsStr = rs.getString("options");
-                    String[] options = optionsStr != null ? optionsStr.split("\\|") : new String[]{"A. True", "B. False"};
-                    questions.add(new Question(id, text, options, correctAnswer));
+                    String[] options = optionsStr != null ? optionsStr.split("\\|") : new String[]{"A", "B", "C"};
+                    questions.add(new Question(id, text, options, correctAnswer, type));
+                } else if ("TF".equals(type)) {
+                    String[] tfOptions = {"True", "False"};
+                    questions.add(new Question(id, text, tfOptions, correctAnswer, type));
                 } else {
-                    questions.add(new Question(id, text, correctAnswer));
+                    // SHORT answer or other types
+                    questions.add(new Question(id, text, correctAnswer, type));
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            System.out.println("Error fetching questions: " + e.getMessage());
+        }
+        return questions;
+    }
+
+    public List<Question> getQuestionsByTeacherAndCourse(int teacherId, int courseId) {
+        List<Question> questions = new ArrayList<>();
+        String sql = "SELECT id, text, correctAnswer, options, questionType FROM Questions WHERE educator_id = ? AND course_id = ? ORDER BY id ASC";
+        try (java.sql.Connection conn = util.DataStore.connect();
+             java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, teacherId);
+            pstmt.setInt(2, courseId);
+            java.sql.ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                int id = rs.getInt("id");
+                String text = rs.getString("text");
+                String correctAnswer = rs.getString("correctAnswer");
+                String type = rs.getString("questionType");
+                String optionsStr = rs.getString("options");
+                
+                if ("MCQ".equals(type)) {
+                    String[] options = optionsStr != null ? optionsStr.split("\\|") : new String[]{"A", "B", "C"};
+                    questions.add(new Question(id, text, options, correctAnswer, type));
+                } else if ("TF".equals(type)) {
+                    String[] tfOptions = {"True", "False"};
+                    questions.add(new Question(id, text, tfOptions, correctAnswer, type));
+                } else {
+                    // SHORT answer or other types
+                    questions.add(new Question(id, text, correctAnswer, type));
                 }
             }
         } catch (java.sql.SQLException e) {
@@ -90,7 +128,8 @@ public class QuizService {
         int score = 0;
         for (Question q : attempt.getQuiz().getQuestions()) {
             Character studentAnswer = attempt.getAnswers().get(q.getId());
-            if (studentAnswer != null && studentAnswer == q.getCorrectAnswer()) {
+            String correctAnswer = q.getCorrectAnswer();
+            if (studentAnswer != null && studentAnswer.toString().equals(correctAnswer)) {
                 score++;
             }
         }
@@ -149,25 +188,53 @@ public class QuizService {
         throw new UnsupportedOperationException("Unimplemented method 'printAllStudents'");
     }
 
-    public void saveQuestion(Question question, int educatorId) {
-        String sql = "INSERT INTO Questions (text, options, correctAnswer, question_type, educator_id) VALUES (?, ?, ?, ?, ?)";
+    public void saveQuestion(Question question, int educatorId, int courseId) {
+        String type = question.getQuestionType();
+        String sql = "INSERT INTO Questions (text, options, correctAnswer, questionType, educator_id, course_id) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection conn = DataStore.connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
-            String[] options = question.getOptions();
-            String optionsStr = String.join("|", options);
-            
             pstmt.setString(1, question.getText());
-            pstmt.setString(2, optionsStr);
-            pstmt.setString(3, String.valueOf(question.getCorrectAnswer()));
-            pstmt.setString(4, "MCQ");
+            
+            // Handle options based on question type
+            String[] options = question.getOptions();
+            String optionsStr = null;
+            
+            if ("MCQ".equals(type) && options != null) {
+                optionsStr = String.join("|", options);
+            } else if ("TF".equals(type)) {
+                optionsStr = "True|False";
+            }
+            // For SHORT answer type, options remain null
+            
+            if (optionsStr != null) {
+                pstmt.setString(2, optionsStr);
+            } else {
+                pstmt.setNull(2, java.sql.Types.VARCHAR);
+            }
+            
+            pstmt.setString(3, question.getCorrectAnswer());
+            pstmt.setString(4, type);
             pstmt.setInt(5, educatorId);
+            if (courseId > 0) {
+                pstmt.setInt(6, courseId);
+            } else {
+                pstmt.setNull(6, java.sql.Types.INTEGER);
+            }
             
             pstmt.executeUpdate();
-            System.out.println("Question saved successfully!");
+            if (courseId > 0) {
+                System.out.println("✓ " + type + " question added to course successfully!");
+            } else {
+                System.out.println("✓ " + type + " question saved successfully!");
+            }
         } catch (SQLException e) {
             System.out.println("Error saving question: " + e.getMessage());
         }
+    }
+
+    public void saveQuestion(Question question, int educatorId) {
+        saveQuestion(question, educatorId, 0);
     }
 
     public Object getAllQuestions() {

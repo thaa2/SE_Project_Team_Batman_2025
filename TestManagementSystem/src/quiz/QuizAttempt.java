@@ -25,23 +25,34 @@ public class QuizAttempt {
         for (Question q : quiz.getQuestions()) {
             System.out.println("\n" + q.getText());
             String[] options = q.getOptions();
-            for (int i = 0; i < options.length; i++) {
-                String opt = options[i];
-                // If option already has letter prefix, use as-is; otherwise add it
-                if (opt.matches("^[A-Z]\\..*")) {
-                    System.out.println("  " + opt);
-                } else {
-                    char letter = (char) ('A' + i);
-                    System.out.println("  " + letter + ". " + opt);
+            
+            // Handle different question types
+            if (options != null && options.length > 0) {
+                // MCQ or True/False questions with options
+                for (int i = 0; i < options.length; i++) {
+                    String opt = options[i];
+                    // If option already has letter prefix, use as-is; otherwise add it
+                    if (opt.matches("^[A-Z]\\..*")) {
+                        System.out.println("  " + opt);
+                    } else {
+                        char letter = (char) ('A' + i);
+                        System.out.println("  " + letter + ". " + opt);
+                    }
                 }
             }
+            // For SHORT answer questions, just prompt for input without options
             
             System.out.print("Your Answer: ");
-            String input = scanner.nextLine().trim().toUpperCase();
+            String input = scanner.nextLine().trim();
             
             if (!input.isEmpty()) {
                 // Store answer using the Question ID as the key
-                studentAnswers.put(q.getId(), input.charAt(0));
+                // For MCQ/TF, convert to uppercase; for SHORT, keep as-is for comparison
+                if (q.getQuestionType().equals("SHORT")) {
+                    studentAnswers.put(q.getId(), input.charAt(0));
+                } else {
+                    studentAnswers.put(q.getId(), input.toUpperCase().charAt(0));
+                }
             }
         }
 

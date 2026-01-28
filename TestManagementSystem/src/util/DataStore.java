@@ -23,7 +23,7 @@ public class DataStore {
         
         // Define all SQL strings
         String sqlUser = "CREATE TABLE IF NOT EXISTS user (" +
-                        "uers_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "user_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                         "name TEXT NOT NULL, " +
                         "age INTEGER, " +
                         "gender TEXT, " +
@@ -37,7 +37,7 @@ public class DataStore {
                         "course_name TEXT NOT NULL, " +
                         "lesson_content TEXT, " +
                         "educator_id INTEGER, " +
-                        "FOREIGN KEY(educator_id) REFERENCES user(uers_id))";
+                        "FOREIGN KEY(educator_id) REFERENCES user(user_id))"; 
 
         String sqlQuestions = "CREATE TABLE IF NOT EXISTS Questions (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -47,8 +47,8 @@ public class DataStore {
                 "questionType TEXT, " +       
                 "educator_id INTEGER, " +
                 "course_id INTEGER, " +
-                "FOREIGN KEY(educator_id) REFERENCES user(uers_id), " +
-                "FOREIGN KEY(course_id) REFERENCES Courses(id))";
+                "FOREIGN KEY(educator_id) REFERENCES user(user_id), " +
+                "FOREIGN KEY(course_id) REFERENCES Courses(id))"; 
 
         String sqlScores = "CREATE TABLE IF NOT EXISTS QuizScores (" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -63,7 +63,7 @@ public class DataStore {
                         "user_id INTEGER UNIQUE, " +
                         "gpa REAL, " +
                         "major TEXT, " +
-                        "FOREIGN KEY(user_id) REFERENCES user(uers_id))";
+                        "FOREIGN KEY(user_id) REFERENCES user(user_id))";
         
         String sqlEnrollments = "CREATE TABLE IF NOT EXISTS Enrollments (" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -78,7 +78,7 @@ public class DataStore {
                         "user_id INTEGER UNIQUE, " +
                         "name TEXT, " +
                         "gender TEXT, " +
-                        "FOREIGN KEY(user_id) REFERENCES user(uers_id))";
+                        "FOREIGN KEY(user_id) REFERENCES user(user_id))";
         
         try (Statement stmt = conn.createStatement()) {
             stmt.execute(sqlUser);
@@ -104,7 +104,7 @@ public class DataStore {
     }
     
     public void displayAvailableTeachers() {
-        String sql = "SELECT uers_id, name FROM user WHERE role = 'EDUCATOR'";
+        String sql = "SELECT user_id, name FROM user WHERE role = 'EDUCATOR' ORDER BY user_id ASC";
         try (Connection conn = connect();
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql)) {
@@ -112,7 +112,7 @@ public class DataStore {
             System.out.println("\n--- Available Teachers ---");
             System.out.printf("%-5s | %-20s\n", "ID", "Name");
             while (rs.next()) {
-                System.out.printf("%-5d | %-20s\n", rs.getInt("uers_id"), rs.getString("name"));
+                System.out.printf("%-5d | %-20s\n", rs.getInt("user_id"), rs.getString("name"));
             }
         } catch (SQLException e) {
             System.out.println("Error displaying teachers: " + e.getMessage());
@@ -166,15 +166,12 @@ while (rs.next()) {
 
     public void role(String role, String name, String gender, int id) throws SQLException {
         if (role.equalsIgnoreCase("STUDENT")) {
-            String sql = "INSERT INTO student (student_id, user_id, name, gender) VALUES (?, ?, ?, ?)";
+            String sql = "INSERT INTO student (user_id, gpa, major) VALUES (?, ?, ?)";
             try (Connection connection = connect();
                 PreparedStatement pstmt = connection.prepareStatement(sql)) {
-                String s_id = "S" + id;
-                
-                pstmt.setString(1, s_id);
-                pstmt.setInt(2, id);
-                pstmt.setString(3, name);
-                pstmt.setString(4, gender);
+                pstmt.setInt(1, id);
+                pstmt.setDouble(2, 0.0);
+                pstmt.setString(3, "Undeclared");
                 pstmt.executeUpdate();
                 System.out.println("✓ Student saved!");
             } catch (SQLException e) {
@@ -244,7 +241,7 @@ while (rs.next()) {
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                int id = rs.getInt("uers_id"); 
+                int id = rs.getInt("user_id"); 
                 String name = rs.getString("name");
                 int age = rs.getInt("age");
                 String gender = rs.getString("gender");
@@ -265,14 +262,14 @@ while (rs.next()) {
     }
 
     public void printEducatorList() {
-        String sql = "SELECT uers_id, name FROM user WHERE role = 'EDUCATOR'";
+        String sql = "SELECT user_id, name FROM user WHERE role = 'EDUCATOR'";
         try (Connection conn = connect();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             
             System.out.println("\n--- Available Educators ---");
             while (rs.next()) {
-                System.out.println("ID: " + rs.getInt("uers_id") + " | Name: " + rs.getString("name"));
+                System.out.println("ID: " + rs.getInt("user_id") + " | Name: " + rs.getString("name"));
             }
         } catch (SQLException e) {
             System.out.println("Error printing educators: " + e.getMessage());
