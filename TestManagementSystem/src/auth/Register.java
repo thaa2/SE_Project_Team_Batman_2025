@@ -78,7 +78,7 @@ public class Register {
         }
         // ... (previous validation code remains the same)
 
-        // 7. ROLE & OBJECT CREATION
+        // 7. ROLE SELECTION
         String selectedRole = "";
         while (true) {
             System.out.println("\nSelect Role:");
@@ -90,25 +90,18 @@ public class Register {
                 int choice = scanner.nextInt();
                 scanner.nextLine(); 
                 
-                User user; 
                 if (choice == 1) {
-                    // Pass 0 as the ID because the DB hasn't generated one yet
-                    user = new Student(0, name, age, gender, birthDate, email, password);
                     selectedRole = "STUDENT";
-                    user.displayInfo();
                     break;
                 } else if (choice == 2) {
-                    // Pass 0 as the ID
-                    user = new Educator(0, name, age, gender, birthDate, email, password);
                     selectedRole = "EDUCATOR";
-                    user.displayInfo();
                     break;
                 }
             }
             System.out.println("Invalid choice. Enter 1 or 2.");
-            // Remove the extra input.nextLine() here to avoid double-skipping
         }
-        // 8. SAVE TO DATABASE
+        
+        // 8. GENERATE ID FIRST, THEN SAVE TO DATABASE AND CREATE PROFILE
         DataStore dataStore = new DataStore();
         dataStore.InsertUser(name, age, gender, birthDate, email, password, selectedRole);
         System.out.println("Registration Successful!");

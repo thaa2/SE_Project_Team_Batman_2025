@@ -169,7 +169,9 @@ while (rs.next()) {
             String sql = "INSERT INTO student (user_id, gpa, major) VALUES (?, ?, ?)";
             try (Connection connection = connect();
                 PreparedStatement pstmt = connection.prepareStatement(sql)) {
-                pstmt.setInt(1, id);
+
+                String s_id = "S" + id;
+                pstmt.setString(1, s_id);
                 pstmt.setDouble(2, 0.0);
                 pstmt.setString(3, "Undeclared");
                 pstmt.executeUpdate();
