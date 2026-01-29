@@ -22,8 +22,12 @@ public class RegisterGUI extends JFrame {
 
     private void initializeUI() {
         setTitle("Test Management System - Register");
-        ImageIcon icon = new ImageIcon(getClass().getResource("logo.png"));
-        setIconImage(icon.getImage());
+        try {
+            ImageIcon icon = new ImageIcon(getClass().getResource("logo.png"));
+            setIconImage(icon.getImage());
+        } catch (Exception e) {
+            // Logo file not found, continue without icon
+        }
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(500, 750);
         setLocationRelativeTo(null);
@@ -265,8 +269,17 @@ public class RegisterGUI extends JFrame {
             "Success", 
             JOptionPane.INFORMATION_MESSAGE);
         
-        // Redirect to login
-        openLoginForm();
+        // Launch appropriate dashboard based on role
+        if (role.equals("Student")) {
+            Student student = new Student(0, name, age, gender, birthDate, email, password);
+            new StudentDashboard(student).setVisible(true);
+        } else {
+            Educator educator = new Educator(0, name, age, gender, birthDate, email, password);
+            new EducatorDashboard(educator).setVisible(true);
+        }
+        
+        // Close register window
+        dispose();
     }
 
     private void openLoginForm() {

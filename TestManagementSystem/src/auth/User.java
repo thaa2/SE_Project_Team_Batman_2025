@@ -27,6 +27,10 @@ public abstract class User {
     public Role getRole() { return role; }
     public int getUserId() { return userId; }
     public String getName() { return name; }
+    public String getEmail() { return email; }
+    public int getAge() { return age; }
+    public String getGender() { return gender; }
+    public String getBirthDate() { return birthDate; }
 
     public abstract void displayInfo();
 }

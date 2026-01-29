@@ -1,0 +1,46 @@
+LOGO SETUP INSTRUCTIONS
+========================
+
+The Java GUI applications (LoginGUI, RegisterGUI, StudentDashboard, EducatorDashboard) 
+are now configured to load a logo.png file from the src/gui directory.
+
+HOW TO ADD THE LOGO:
+====================
+
+Option 1: Create a PNG Image
+- Create or download a PNG image file (any size, recommended 256x256 or 512x512)
+- Name it "logo.png"
+- Place it in: src/gui/logo.png
+- The application will automatically load it as the window icon
+
+Option 2: Convert the Provided SVG
+- A logo.svg file has been created in src/gui/
+- Convert it to PNG using online tools like:
+  * CloudConvert (cloudconvert.com)
+  * Online-Convert (online-convert.com)
+  * Convertio (convertio.com)
+- Upload logo.svg and export as PNG (256x256 or 512x512)
+- Save as logo.png in the src/gui/ directory
+
+Option 3: Generate from ImageMagick (Command Line)
+- If you have ImageMagick installed:
+  convert src/gui/logo.svg -trim -background none -density 150 src/gui/logo.png
+
+Option 4: Use Java to Create a Simple Logo (Programmatic)
+- The application will gracefully handle a missing logo.png
+- It will still run perfectly fine without the icon
+- When you add logo.png later, it will automatically appear
+
+CURRENT STATUS:
+===============
+✅ All GUI classes are configured to load logo.png
+✅ Exception handling in place if logo is not found
+✅ Applications will run without errors even if logo.png is missing
+✅ Simply add logo.png to src/gui/ when ready
+
+CLASSES UPDATED:
+================
+- src/gui/LoginGUI.java
+- src/gui/RegisterGUI.java
+- src/gui/StudentDashboard.java
+- src/gui/EducatorDashboard.java

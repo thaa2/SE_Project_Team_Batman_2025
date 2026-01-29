@@ -1,4 +1,4 @@
-package educator;
+package gui;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -10,10 +10,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import util.DataStore;
-import quiz.QuizController;
 import quiz.QuizManager;
 import quiz.QuizService;
 import auth.User;
+import educator.Educator;
 
 public class EducatorDashboard extends JFrame {
     private Educator educator;
@@ -33,6 +33,12 @@ public class EducatorDashboard extends JFrame {
 
     private void initializeUI() {
         setTitle("Educator Dashboard - Test Management System");
+        try {
+            ImageIcon icon = new ImageIcon(getClass().getResource("logo.png"));
+            setIconImage(icon.getImage());
+        } catch (Exception e) {
+            // Logo file not found, continue without icon
+        }
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1200, 800);
         setLocationRelativeTo(null);
@@ -124,15 +130,20 @@ public class EducatorDashboard extends JFrame {
 
         // Logout button
         JButton logoutButton = new JButton("🚪 Logout");
-        logoutButton.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        logoutButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
         logoutButton.setBackground(new Color(220, 53, 69));
         logoutButton.setForeground(Color.WHITE);
         logoutButton.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
+        logoutButton.setOpaque(true);
+        logoutButton.setContentAreaFilled(true);
+        logoutButton.setFocusPainted(false);
+        logoutButton.setBorderPainted(false);
         logoutButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         logoutButton.addActionListener(e -> {
             int result = JOptionPane.showConfirmDialog(this, "Are you sure you want to logout?", "Confirm Logout", JOptionPane.YES_NO_OPTION);
             if (result == JOptionPane.YES_OPTION) {
                 dispose();
+                new LoginGUI().setVisible(true);
             }
         });
         sidebarPanel.add(logoutButton);
@@ -171,6 +182,7 @@ public class EducatorDashboard extends JFrame {
         JLabel welcomeLabel = new JLabel("Welcome, " + educator.getName() + "!");
         welcomeLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         welcomeLabel.setForeground(new Color(60, 60, 60));
+        welcomeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(welcomeLabel);
 
         panel.add(Box.createVerticalStrut(20));
@@ -178,10 +190,10 @@ public class EducatorDashboard extends JFrame {
         // Statistics cards
         JPanel statsPanel = new JPanel(new GridLayout(1, 4, 20, 0));
         statsPanel.setBackground(new Color(240, 242, 245));
-        statsPanel.add(createStatCard("Total Questions", String.valueOf(getTotalQuestions()), new Color(67, 97, 238)));
-        statsPanel.add(createStatCard("My Courses", String.valueOf(getTotalCourses()), new Color(103, 58, 183)));
-        statsPanel.add(createStatCard("Students Taught", String.valueOf(getStudentCount()), new Color(76, 175, 80)));
-        statsPanel.add(createStatCard("Quizzes Created", String.valueOf(getQuizCount()), new Color(255, 152, 0)));
+        statsPanel.add(createStatCard("❓ Total Questions", String.valueOf(getTotalQuestions()), new Color(67, 97, 238)));
+        statsPanel.add(createStatCard("📚 My Courses", String.valueOf(getTotalCourses()), new Color(103, 58, 183)));
+        statsPanel.add(createStatCard("👥 Students Taught", String.valueOf(getStudentCount()), new Color(76, 175, 80)));
+        statsPanel.add(createStatCard("🎯 Quizzes Created", String.valueOf(getQuizCount()), new Color(255, 152, 0)));
         panel.add(statsPanel);
 
         panel.add(Box.createVerticalStrut(30));
@@ -190,16 +202,27 @@ public class EducatorDashboard extends JFrame {
         JLabel actionsLabel = new JLabel("Quick Actions");
         actionsLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
         actionsLabel.setForeground(new Color(60, 60, 60));
+        actionsLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(actionsLabel);
 
         panel.add(Box.createVerticalStrut(15));
 
+        JPanel actionsWrapperPanel = new JPanel();
+        actionsWrapperPanel.setBackground(new Color(240, 242, 245));
+        actionsWrapperPanel.setLayout(new BoxLayout(actionsWrapperPanel, BoxLayout.X_AXIS));
+        
         JPanel actionsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
         actionsPanel.setBackground(new Color(240, 242, 245));
-        actionsPanel.add(createActionCard("Add Questions", "Create new quiz questions", e -> cardLayout.show(mainPanel, "addQuestions")));
-        actionsPanel.add(createActionCard("View Results", "Check student performance", e -> cardLayout.show(mainPanel, "results")));
-        actionsPanel.add(createActionCard("Manage Courses", "Create and edit courses", e -> cardLayout.show(mainPanel, "courses")));
-        panel.add(actionsPanel);
+        actionsPanel.setMaximumSize(new Dimension(900, 200));
+        actionsPanel.add(createActionCard("❓ Add Questions", "Create new quiz questions", e -> cardLayout.show(mainPanel, "addQuestions")));
+        actionsPanel.add(createActionCard("📊 View Results", "Check student performance", e -> cardLayout.show(mainPanel, "results")));
+        actionsPanel.add(createActionCard("📚 Manage Courses", "Create and edit courses", e -> cardLayout.show(mainPanel, "courses")));
+        
+        actionsWrapperPanel.add(Box.createHorizontalGlue());
+        actionsWrapperPanel.add(actionsPanel);
+        actionsWrapperPanel.add(Box.createHorizontalGlue());
+        
+        panel.add(actionsWrapperPanel);
 
         panel.add(Box.createVerticalGlue());
 
@@ -264,11 +287,15 @@ public class EducatorDashboard extends JFrame {
 
         card.add(Box.createVerticalGlue());
 
-        JButton button = new JButton("Go →");
-        button.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        JButton button = new JButton("Go");
+        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
         button.setBackground(new Color(67, 97, 238));
         button.setForeground(Color.WHITE);
         button.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
+        button.setOpaque(true);
+        button.setContentAreaFilled(true);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
         button.addActionListener(action);
         card.add(button);
 

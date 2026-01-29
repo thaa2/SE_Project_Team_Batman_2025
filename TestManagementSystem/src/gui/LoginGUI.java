@@ -5,6 +5,8 @@ import java.awt.*;
 import java.awt.event.*;
 import util.DataStore;
 import auth.*;
+import student.Student;
+import educator.Educator;
 
 public class LoginGUI extends JFrame {
     private JTextField emailField;
@@ -20,8 +22,12 @@ public class LoginGUI extends JFrame {
 
     private void initializeUI() {
         setTitle("Test Management System - Login");
-        ImageIcon icon = new ImageIcon(getClass().getResource("logo.png"));
-        setIconImage(icon.getImage());
+        try {
+            ImageIcon icon = new ImageIcon(getClass().getResource("logo.png"));
+            setIconImage(icon.getImage());
+        } catch (Exception e) {
+            // Logo file not found, continue without icon
+        }
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(450, 550);
         setLocationRelativeTo(null);
@@ -162,7 +168,17 @@ public class LoginGUI extends JFrame {
 
         if (authenticatedUser != null) {
             showMessage("Welcome back, " + authenticatedUser.getName() + "!", "Success", JOptionPane.INFORMATION_MESSAGE);
-            // Navigate to main application or dashboard
+            
+            // Launch appropriate dashboard based on user role
+            if (authenticatedUser.getRole() == Role.STUDENT) {
+                Student student = (Student) authenticatedUser;
+                new StudentDashboard(student).setVisible(true);
+            } else if (authenticatedUser.getRole() == Role.EDUCATOR) {
+                Educator educator = (Educator) authenticatedUser;
+                new EducatorDashboard(educator).setVisible(true);
+            }
+            
+            // Close login window
             dispose();
         } else {
             showMessage("Invalid email or password", "Login Failed", JOptionPane.ERROR_MESSAGE);
