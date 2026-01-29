@@ -87,10 +87,10 @@ public class StudentDashboard extends JFrame {
         titleLabel.setForeground(Color.WHITE);
         headerPanel.add(titleLabel, BorderLayout.WEST);
 
-        JLabel userLabel = new JLabel("Welcome, " + student.getName());
-        userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        userLabel.setForeground(new Color(255, 255, 255, 200));
-        headerPanel.add(userLabel, BorderLayout.EAST);
+        // JLabel userLabel = new JLabel("Welcome, " + student.getName());
+        // userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        // userLabel.setForeground(new Color(255, 255, 255, 200));
+        // headerPanel.add(userLabel, BorderLayout.EAST);
 
         return headerPanel;
     }
@@ -103,7 +103,7 @@ public class StudentDashboard extends JFrame {
         sidebarPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, new Color(200, 200, 200)));
         sidebarPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
 
-        String[] menuItems = {"📊 Dashboard", "📝 My Results", "🧪 Attempt Quiz", "📚 Courses", "👤 Profile"};
+        String[] menuItems = {"Dashboard", "My Results", "Attempt Quiz", "Courses", "Profile"};
         String[] panelNames = {"dashboard", "results", "attempt", "courses", "profile"};
 
         for (int i = 0; i < menuItems.length; i++) {
@@ -117,7 +117,7 @@ public class StudentDashboard extends JFrame {
         sidebarPanel.add(Box.createVerticalGlue());
 
         // Logout button
-        JButton logoutButton = new JButton("🚪 Logout");
+        JButton logoutButton = new JButton("Logout");
         logoutButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
         logoutButton.setBackground(new Color(220, 53, 69));
         logoutButton.setForeground(Color.WHITE);
@@ -145,7 +145,7 @@ public class StudentDashboard extends JFrame {
         button.setBackground(new Color(240, 242, 245));
         button.setForeground(new Color(60, 60, 60));
         button.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
-        button.setAlignmentX(Component.LEFT_ALIGNMENT);
+        button.setAlignmentX(Component.CENTER_ALIGNMENT);
         button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         button.addMouseListener(new MouseAdapter() {
             @Override
@@ -178,9 +178,9 @@ public class StudentDashboard extends JFrame {
         // Statistics cards
         JPanel statsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
         statsPanel.setBackground(new Color(240, 242, 245));
-        statsPanel.add(createStatCard("🎯 Quizzes Attempted", "0", new Color(67, 97, 238)));
-        statsPanel.add(createStatCard("📊 Average Score", "0%", new Color(103, 58, 183)));
-        statsPanel.add(createStatCard("📚 Courses Enrolled", "0", new Color(76, 175, 80)));
+        statsPanel.add(createStatCard("Quizzes Attempted", "0", new Color(67, 97, 238)));
+        statsPanel.add(createStatCard("Average Score", "0%", new Color(103, 58, 183)));
+        statsPanel.add(createStatCard("Courses Enrolled", "0", new Color(76, 175, 80)));
         panel.add(statsPanel);
 
         panel.add(Box.createVerticalStrut(30));
@@ -201,9 +201,9 @@ public class StudentDashboard extends JFrame {
         JPanel actionsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
         actionsPanel.setBackground(new Color(240, 242, 245));
         actionsPanel.setMaximumSize(new Dimension(900, 200));
-        actionsPanel.add(createActionCard("🧪 Attempt Quiz", "Take a new quiz", e -> cardLayout.show(mainPanel, "attempt")));
-        actionsPanel.add(createActionCard("📋 View Results", "Check your scores", e -> cardLayout.show(mainPanel, "results")));
-        actionsPanel.add(createActionCard("🎓 Browse Courses", "Enroll in courses", e -> cardLayout.show(mainPanel, "courses")));
+        actionsPanel.add(createActionCard("Attempt Quiz", "Take a new quiz", e -> cardLayout.show(mainPanel, "attempt")));
+        actionsPanel.add(createActionCard("View Results", "Check your scores", e -> cardLayout.show(mainPanel, "results")));
+        actionsPanel.add(createActionCard("Browse Courses", "Enroll in courses", e -> cardLayout.show(mainPanel, "courses")));
         
         actionsWrapperPanel.add(Box.createHorizontalGlue());
         actionsWrapperPanel.add(actionsPanel);
@@ -277,7 +277,7 @@ public class StudentDashboard extends JFrame {
         JButton button = new JButton("Go");
         button.setFont(new Font("Segoe UI", Font.BOLD, 12));
         button.setBackground(new Color(67, 97, 238));
-        button.setForeground(Color.WHITE);
+        button.setForeground(Color.BLACK);
         button.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
         button.setOpaque(true);
         button.setContentAreaFilled(true);
@@ -312,7 +312,13 @@ public class StudentDashboard extends JFrame {
         resultsTable.setRowHeight(30);
         resultsTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         resultsTable.getTableHeader().setBackground(new Color(67, 97, 238));
-        resultsTable.getTableHeader().setForeground(Color.WHITE);
+        resultsTable.getTableHeader().setForeground(Color.black);
+        resultsTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        resultsTable.getColumnModel().getColumn(0).setMinWidth(100);
+        resultsTable.getColumnModel().getColumn(1).setMinWidth(70);
+        resultsTable.getColumnModel().getColumn(2).setMinWidth(70);
+        resultsTable.getColumnModel().getColumn(3).setMinWidth(90);
+        resultsTable.getColumnModel().getColumn(4).setMinWidth(100);
 
         JScrollPane scrollPane = new JScrollPane(resultsTable);
         scrollPane.setPreferredSize(new Dimension(0, 300));
@@ -332,12 +338,14 @@ public class StudentDashboard extends JFrame {
         JLabel titleLabel = new JLabel("Attempt a Quiz");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         titleLabel.setForeground(new Color(60, 60, 60));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(titleLabel);
 
         panel.add(Box.createVerticalStrut(20));
 
         JLabel infoLabel = new JLabel("Select a quiz category to begin:");
         infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        infoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(infoLabel);
 
         panel.add(Box.createVerticalStrut(15));
@@ -366,6 +374,7 @@ public class StudentDashboard extends JFrame {
         JLabel titleLabel = new JLabel("Available Courses");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         titleLabel.setForeground(new Color(60, 60, 60));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(titleLabel);
 
         panel.add(Box.createVerticalStrut(20));
@@ -416,7 +425,7 @@ public class StudentDashboard extends JFrame {
         JButton enrollButton = new JButton("Enroll");
         enrollButton.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         enrollButton.setBackground(new Color(76, 175, 80));
-        enrollButton.setForeground(Color.WHITE);
+        enrollButton.setForeground(Color.BLACK);
         enrollButton.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
         card.add(enrollButton);
 
@@ -455,7 +464,7 @@ public class StudentDashboard extends JFrame {
         JButton startButton = new JButton("Start Quiz →");
         startButton.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         startButton.setBackground(new Color(67, 97, 238));
-        startButton.setForeground(Color.WHITE);
+        startButton.setForeground(Color.BLACK);
         startButton.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
         startButton.addActionListener(action);
         card.add(startButton);

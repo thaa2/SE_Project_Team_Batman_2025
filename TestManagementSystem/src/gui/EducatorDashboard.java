@@ -91,7 +91,7 @@ public class EducatorDashboard extends JFrame {
             }
         };
         headerPanel.setPreferredSize(new Dimension(0, 80));
-        headerPanel.setLayout(new BorderLayout());
+        headerPanel.setLayout(new BorderLayout(20, 0));
         headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 30, 15, 30));
 
         JLabel titleLabel = new JLabel("Educator Dashboard");
@@ -99,10 +99,11 @@ public class EducatorDashboard extends JFrame {
         titleLabel.setForeground(Color.WHITE);
         headerPanel.add(titleLabel, BorderLayout.WEST);
 
-        JLabel userLabel = new JLabel("Welcome, " + educator.getName());
-        userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        userLabel.setForeground(new Color(255, 255, 255, 200));
-        headerPanel.add(userLabel, BorderLayout.EAST);
+        // JLabel userLabel = new JLabel("Welcome, " + educator.getName());
+        // userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        // userLabel.setForeground(Color.WHITE);
+        // userLabel.setHorizontalAlignment(JLabel.RIGHT);
+        // headerPanel.add(userLabel, BorderLayout.EAST);
 
         return headerPanel;
     }
@@ -115,21 +116,23 @@ public class EducatorDashboard extends JFrame {
         sidebarPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, new Color(200, 200, 200)));
         sidebarPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
 
-        String[] menuItems = {"📊 Dashboard", "❓ Add Questions", "📚 Manage Courses", "👥 Student Results", "📈 Analytics", "👤 Profile"};
+        String[] menuItems = {"Dashboard", "Add Questions", "Manage Courses", "Student Results", "Analytics", "Profile"};
         String[] panelNames = {"dashboard", "addQuestions", "courses", "results", "analytics", "profile"};
 
         for (int i = 0; i < menuItems.length; i++) {
             JButton button = createSidebarButton(menuItems[i], panelNames[i]);
+            sidebarPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
             sidebarPanel.add(button);
             if (i < menuItems.length - 1) {
                 sidebarPanel.add(Box.createVerticalStrut(10));
             }
         }
+        
 
         sidebarPanel.add(Box.createVerticalGlue());
 
         // Logout button
-        JButton logoutButton = new JButton("🚪 Logout");
+        JButton logoutButton = new JButton("Logout");
         logoutButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
         logoutButton.setBackground(new Color(220, 53, 69));
         logoutButton.setForeground(Color.WHITE);
@@ -157,7 +160,7 @@ public class EducatorDashboard extends JFrame {
         button.setBackground(new Color(240, 242, 245));
         button.setForeground(new Color(60, 60, 60));
         button.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
-        button.setAlignmentX(Component.LEFT_ALIGNMENT);
+        button.setAlignmentX(Component.CENTER_ALIGNMENT);
         button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         button.addMouseListener(new MouseAdapter() {
             @Override
@@ -190,10 +193,10 @@ public class EducatorDashboard extends JFrame {
         // Statistics cards
         JPanel statsPanel = new JPanel(new GridLayout(1, 4, 20, 0));
         statsPanel.setBackground(new Color(240, 242, 245));
-        statsPanel.add(createStatCard("❓ Total Questions", String.valueOf(getTotalQuestions()), new Color(67, 97, 238)));
-        statsPanel.add(createStatCard("📚 My Courses", String.valueOf(getTotalCourses()), new Color(103, 58, 183)));
-        statsPanel.add(createStatCard("👥 Students Taught", String.valueOf(getStudentCount()), new Color(76, 175, 80)));
-        statsPanel.add(createStatCard("🎯 Quizzes Created", String.valueOf(getQuizCount()), new Color(255, 152, 0)));
+        statsPanel.add(createStatCard("Total Questions", String.valueOf(getTotalQuestions()), new Color(67, 97, 238)));
+        statsPanel.add(createStatCard("My Courses", String.valueOf(getTotalCourses()), new Color(103, 58, 183)));
+        statsPanel.add(createStatCard("Students Taught", String.valueOf(getStudentCount()), new Color(76, 175, 80)));
+        statsPanel.add(createStatCard("Quizzes Created", String.valueOf(getQuizCount()), new Color(255, 152, 0)));
         panel.add(statsPanel);
 
         panel.add(Box.createVerticalStrut(30));
@@ -214,9 +217,9 @@ public class EducatorDashboard extends JFrame {
         JPanel actionsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
         actionsPanel.setBackground(new Color(240, 242, 245));
         actionsPanel.setMaximumSize(new Dimension(900, 200));
-        actionsPanel.add(createActionCard("❓ Add Questions", "Create new quiz questions", e -> cardLayout.show(mainPanel, "addQuestions")));
-        actionsPanel.add(createActionCard("📊 View Results", "Check student performance", e -> cardLayout.show(mainPanel, "results")));
-        actionsPanel.add(createActionCard("📚 Manage Courses", "Create and edit courses", e -> cardLayout.show(mainPanel, "courses")));
+        actionsPanel.add(createActionCard("Add Questions", "Create new quiz questions", e -> cardLayout.show(mainPanel, "addQuestions")));
+        actionsPanel.add(createActionCard("View Results", "Check student performance", e -> cardLayout.show(mainPanel, "results")));
+        actionsPanel.add(createActionCard("Manage Courses", "Create and edit courses", e -> cardLayout.show(mainPanel, "courses")));
         
         actionsWrapperPanel.add(Box.createHorizontalGlue());
         actionsWrapperPanel.add(actionsPanel);
@@ -290,7 +293,7 @@ public class EducatorDashboard extends JFrame {
         JButton button = new JButton("Go");
         button.setFont(new Font("Segoe UI", Font.BOLD, 12));
         button.setBackground(new Color(67, 97, 238));
-        button.setForeground(Color.WHITE);
+        button.setForeground(Color.BLACK);
         button.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
         button.setOpaque(true);
         button.setContentAreaFilled(true);
@@ -312,6 +315,7 @@ public class EducatorDashboard extends JFrame {
         JLabel titleLabel = new JLabel("Add New Questions");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         titleLabel.setForeground(new Color(60, 60, 60));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(titleLabel);
 
         panel.add(Box.createVerticalStrut(20));
@@ -333,6 +337,7 @@ public class EducatorDashboard extends JFrame {
         JLabel instructionLabel = new JLabel("Select a question type to add:");
         instructionLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         instructionLabel.setForeground(new Color(60, 60, 60));
+        instructionLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         cardPanel.add(instructionLabel);
 
         cardPanel.add(Box.createVerticalStrut(20));
@@ -392,7 +397,7 @@ public class EducatorDashboard extends JFrame {
         JButton button = new JButton("Add " + title);
         button.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         button.setBackground(color);
-        button.setForeground(Color.WHITE);
+        button.setForeground(Color.BLACK);
         button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         button.addActionListener(action);
         card.add(button);
@@ -438,7 +443,7 @@ public class EducatorDashboard extends JFrame {
 
         JButton saveButton = new JButton("Save Question");
         saveButton.setBackground(new Color(67, 97, 238));
-        saveButton.setForeground(Color.WHITE);
+        saveButton.setForeground(Color.BLACK);
         saveButton.addActionListener(e -> {
             JOptionPane.showMessageDialog(dialog, "MCQ Question saved successfully!");
             dialog.dispose();
@@ -471,7 +476,7 @@ public class EducatorDashboard extends JFrame {
 
         JButton saveButton = new JButton("Save Question");
         saveButton.setBackground(new Color(67, 97, 238));
-        saveButton.setForeground(Color.WHITE);
+        saveButton.setForeground(Color.BLACK);
         saveButton.addActionListener(e -> {
             JOptionPane.showMessageDialog(dialog, "True/False Question saved successfully!");
             dialog.dispose();
@@ -504,7 +509,7 @@ public class EducatorDashboard extends JFrame {
 
         JButton saveButton = new JButton("Save Question");
         saveButton.setBackground(new Color(67, 97, 238));
-        saveButton.setForeground(Color.WHITE);
+        saveButton.setForeground(Color.BLACK);
         saveButton.addActionListener(e -> {
             JOptionPane.showMessageDialog(dialog, "Short Answer Question saved successfully!");
             dialog.dispose();
@@ -524,6 +529,7 @@ public class EducatorDashboard extends JFrame {
         JLabel titleLabel = new JLabel("Manage Your Courses");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         titleLabel.setForeground(new Color(60, 60, 60));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(titleLabel);
 
         panel.add(Box.createVerticalStrut(20));
@@ -531,8 +537,9 @@ public class EducatorDashboard extends JFrame {
         JButton createCourseButton = new JButton("+ Create New Course");
         createCourseButton.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         createCourseButton.setBackground(new Color(67, 97, 238));
-        createCourseButton.setForeground(Color.WHITE);
+        createCourseButton.setForeground(Color.BLACK);
         createCourseButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        createCourseButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         createCourseButton.addActionListener(e -> openCreateCourseDialog());
         panel.add(createCourseButton);
 
@@ -546,7 +553,12 @@ public class EducatorDashboard extends JFrame {
         coursesTable.setRowHeight(30);
         coursesTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         coursesTable.getTableHeader().setBackground(new Color(67, 97, 238));
-        coursesTable.getTableHeader().setForeground(Color.WHITE);
+        coursesTable.getTableHeader().setForeground(Color.black);
+        coursesTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        coursesTable.getColumnModel().getColumn(0).setMinWidth(80);
+        coursesTable.getColumnModel().getColumn(1).setMinWidth(120);
+        coursesTable.getColumnModel().getColumn(2).setMinWidth(150);
+        coursesTable.getColumnModel().getColumn(3).setMinWidth(80);
 
         // Load courses from database
         loadCoursesIntoTable(model);
@@ -643,6 +655,7 @@ public class EducatorDashboard extends JFrame {
         JLabel titleLabel = new JLabel("Student Results");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         titleLabel.setForeground(new Color(60, 60, 60));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(titleLabel);
 
         panel.add(Box.createVerticalStrut(20));
@@ -654,7 +667,13 @@ public class EducatorDashboard extends JFrame {
         resultsTable.setRowHeight(30);
         resultsTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         resultsTable.getTableHeader().setBackground(new Color(67, 97, 238));
-        resultsTable.getTableHeader().setForeground(Color.WHITE);
+        resultsTable.getTableHeader().setForeground(Color.black);
+        resultsTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        resultsTable.getColumnModel().getColumn(0).setMinWidth(120);
+        resultsTable.getColumnModel().getColumn(1).setMinWidth(60);
+        resultsTable.getColumnModel().getColumn(2).setMinWidth(100);
+        resultsTable.getColumnModel().getColumn(3).setMinWidth(90);
+        resultsTable.getColumnModel().getColumn(4).setMinWidth(120);
 
         // Load results from database
         loadResultsIntoTable(model);
@@ -697,6 +716,7 @@ public class EducatorDashboard extends JFrame {
         JLabel titleLabel = new JLabel("Analytics & Statistics");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         titleLabel.setForeground(new Color(60, 60, 60));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(titleLabel);
 
         panel.add(Box.createVerticalStrut(20));
@@ -723,6 +743,7 @@ public class EducatorDashboard extends JFrame {
         JLabel titleLabel = new JLabel("Your Profile");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         titleLabel.setForeground(new Color(60, 60, 60));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(titleLabel);
 
         panel.add(Box.createVerticalStrut(20));
