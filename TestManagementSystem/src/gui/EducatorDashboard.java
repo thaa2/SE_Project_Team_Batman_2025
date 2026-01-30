@@ -535,14 +535,22 @@ public class EducatorDashboard extends JFrame {
         panel.add(Box.createVerticalStrut(20));
 
         JButton createCourseButton = new JButton("+ Create New Course");
-        createCourseButton.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        createCourseButton.setBackground(new Color(67, 97, 238));
-        createCourseButton.setForeground(Color.BLACK);
+        createCourseButton.setFont(new Font("Segoe UI", Font.BOLD, 13)); // Bold often looks better for buttons
+        createCourseButton.setBackground(new Color(67, 97, 238)); // Your Blue
+        createCourseButton.setForeground(Color.WHITE);           // Your White Text
+
+        // Crucial for custom colors to show up on all platforms:
+        createCourseButton.setContentAreaFilled(false);
+        createCourseButton.setOpaque(true);
+
+        // Removing the default border and adding padding
         createCourseButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        createCourseButton.setFocusPainted(false); // Removes the thin dotted line when clicked
+
         createCourseButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         createCourseButton.addActionListener(e -> openCreateCourseDialog());
-        panel.add(createCourseButton);
 
+        panel.add(createCourseButton);
         panel.add(Box.createVerticalStrut(20));
 
         // Courses list
@@ -594,15 +602,26 @@ public class EducatorDashboard extends JFrame {
         panel.add(Box.createVerticalStrut(15));
 
         JButton saveButton = new JButton("Create Course");
-        saveButton.setBackground(new Color(76, 175, 80));
-        saveButton.setForeground(Color.WHITE);
+        // Use a nice "Success Green" (like Emerald or Forest Green)
+        saveButton.setBackground(new Color(40, 167, 69)); 
+        saveButton.setForeground(Color.WHITE); // White text
+        saveButton.setContentAreaFilled(false);
+        saveButton.setOpaque(true);
+        saveButton.setFocusPainted(false); // Removes the focus ring
+        saveButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         saveButton.addActionListener(e -> {
             String courseName = courseNameField.getText().trim();
             String content = contentArea.getText().trim();
             if (!courseName.isEmpty() && !content.isEmpty()) {
                 saveCourseToDatabase(courseName, content);
                 JOptionPane.showMessageDialog(dialog, "Course created successfully!");
-                dialog.dispose();
+                saveButton.setText("Done");
+                // Remove existing action listeners
+                for (ActionListener al : saveButton.getActionListeners()) {
+                    saveButton.removeActionListener(al);
+                }
+                // Add new action listener for Done button
+                saveButton.addActionListener(e2 -> dialog.dispose());
             } else {
                 JOptionPane.showMessageDialog(dialog, "Please fill in all fields!", "Error", JOptionPane.ERROR_MESSAGE);
             }
