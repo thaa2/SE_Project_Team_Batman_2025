@@ -25,12 +25,23 @@ public class CourseManager {
         }
         String lessonContent = contentBuilder.toString().trim();
 
-        String sql = "INSERT INTO Courses(course_name, lesson_content, educator_id) VALUES(?, ?, ?)";
+        // Ask for time limit in minutes (0 = no limit)
+        System.out.print("Enter quiz time limit in minutes (0 for no time limit): ");
+        int timeLimit = 0;
+        try {
+            timeLimit = Integer.parseInt(sc.nextLine().trim());
+            if (timeLimit < 0) timeLimit = 0;
+        } catch (NumberFormatException e) {
+            timeLimit = 0;
+        }
+
+        String sql = "INSERT INTO Courses(course_name, lesson_content, educator_id, time_limit) VALUES(?, ?, ?, ?)";
         try (Connection conn = DataStore.connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, courseName);
             pstmt.setString(2, lessonContent);
             pstmt.setInt(3, educatorId);
+            pstmt.setInt(4, timeLimit);
             pstmt.executeUpdate();
             System.out.println("✓ Course and Lesson created successfully!");
         } catch (SQLException e) {
