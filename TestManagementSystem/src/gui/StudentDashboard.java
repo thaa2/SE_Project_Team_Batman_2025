@@ -3,10 +3,8 @@ package gui;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.RoundRectangle2D;
 import java.sql.*;
 import util.DataStore;
-import auth.User;
 import student.Student;
 
 public class StudentDashboard extends JFrame {
@@ -15,7 +13,6 @@ public class StudentDashboard extends JFrame {
     private JPanel mainPanel;
     private CardLayout cardLayout;
     private quiz.QuizService quizService;
-    private quiz.QuizManager quizManager;
 
     // Results table model & table for "My Results" panel
     private javax.swing.table.DefaultTableModel resultsTableModel;
@@ -25,7 +22,6 @@ public class StudentDashboard extends JFrame {
         this.student = student;
         this.dataStore = new DataStore();
         this.quizService = new quiz.QuizService();
-        this.quizManager = new quiz.QuizManager(quizService);
         initializeUI();
     }
 
@@ -62,11 +58,7 @@ public class StudentDashboard extends JFrame {
         mainPanel.add(createResultsPanel(), "results");
         mainPanel.add(createAttemptPanel(), "attempt");
         mainPanel.add(createCoursesPanel(), "courses");
-<<<<<<< HEAD
         mainPanel.add(createForumPanel(), "forum");
-=======
-        mainPanel.add(new ForumPanel(student), "forum");
->>>>>>> b55533954a257482e8bf8fca45cb828a9eb2e888
         mainPanel.add(createProfilePanel(), "profile");
 
         bodyPanel.add(sidebarPanel, BorderLayout.WEST);
@@ -387,6 +379,7 @@ public class StudentDashboard extends JFrame {
             boolean hasResults = false;
             while (rs.next()) {
                 hasResults = true;
+                int id = rs.getInt("id");
                 String quizType = rs.getString("quiz_type");
                 String courseName = rs.getString("course_name");
                 int courseId = rs.getInt("course_id");
@@ -407,7 +400,7 @@ public class StudentDashboard extends JFrame {
                 double perc = rs.getDouble("percentage");
                 String date = rs.getString("attemptDate");
 
-                resultsTableModel.addRow(new Object[]{quizLabel, score, total, String.format("%.2f%%", perc), date});
+                resultsTableModel.addRow(new Object[]{id, quizLabel, score, total, String.format("%.2f%%", perc), date});
             }
 
             if (!hasResults) {

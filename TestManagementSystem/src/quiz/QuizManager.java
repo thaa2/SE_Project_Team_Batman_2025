@@ -14,11 +14,11 @@ import course.CourseManager;
 
 public class QuizManager {
     private final QuizService quizService;
-    private final course.CourseManager courseManager;
+    private final CourseManager courseManager;
     
     public QuizManager(QuizService quizService) {
         this.quizService = quizService;
-        this.courseManager = new course.CourseManager();
+        this.courseManager = new CourseManager();
     }
 // Inside QuizManager.java
 

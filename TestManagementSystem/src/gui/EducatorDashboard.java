@@ -10,21 +10,17 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import util.DataStore;
-import quiz.QuizManager;
 import quiz.QuizService;
 import quiz.Question;
 import java.util.Map;
 import java.util.HashMap;
-import auth.User;
 import educator.Educator;
 
 public class EducatorDashboard extends JFrame {
     private Educator educator;
-    private DataStore dataStore;
     private JPanel mainPanel;
     private CardLayout cardLayout;
-    private QuizService quizService;
-    private QuizManager quizManager;
+    private QuizService quizService; 
 
     // UI models/tables to allow refresh after create/save
     private javax.swing.table.DefaultTableModel coursesTableModel;
@@ -47,9 +43,7 @@ public class EducatorDashboard extends JFrame {
 
     public EducatorDashboard(Educator educator) {
         this.educator = educator;
-        this.dataStore = new DataStore();
         this.quizService = new QuizService();
-        this.quizManager = new QuizManager(quizService);
 
         // Safety: wrap UI initialization so any exception is shown to the user and logged
         System.out.println("Opening EducatorDashboard for user id=" + (educator != null ? educator.getUserId() : "null") + ", name=" + (educator != null ? educator.getName() : "null"));

@@ -1,7 +1,5 @@
 package auth;
 import java.util.Scanner;
-import educator.*;
-import student.*;
 import util.*;
 public class Register {
     private Scanner scanner;
