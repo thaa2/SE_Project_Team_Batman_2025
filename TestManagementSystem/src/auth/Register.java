@@ -103,7 +103,11 @@ public class Register {
         
         // 8. GENERATE ID FIRST, THEN SAVE TO DATABASE AND CREATE PROFILE
         DataStore dataStore = new DataStore();
-        dataStore.InsertUser(name, age, gender, birthDate, email, password, selectedRole);
-        System.out.println("Registration Successful!");
+        int newId = dataStore.InsertUser(name, age, gender, birthDate, email, password, selectedRole);
+        if (newId > 0) {
+            System.out.println("Registration Successful! Generated ID: " + newId);
+        } else {
+            System.out.println("Registration failed. Please try again.");
+        }
     }
 }

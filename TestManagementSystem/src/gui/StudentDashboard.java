@@ -62,7 +62,11 @@ public class StudentDashboard extends JFrame {
         mainPanel.add(createResultsPanel(), "results");
         mainPanel.add(createAttemptPanel(), "attempt");
         mainPanel.add(createCoursesPanel(), "courses");
+<<<<<<< HEAD
         mainPanel.add(createForumPanel(), "forum");
+=======
+        mainPanel.add(new ForumPanel(student), "forum");
+>>>>>>> b55533954a257482e8bf8fca45cb828a9eb2e888
         mainPanel.add(createProfilePanel(), "profile");
 
         bodyPanel.add(sidebarPanel, BorderLayout.WEST);

@@ -8,6 +8,7 @@ import auth.*;
 import educator.*;
 import quiz.*;
 import student.*;
+import forum.*;
 
 public class DataStore {
 
@@ -129,43 +130,9 @@ public class DataStore {
             stmt.execute(sqlStudent);
             stmt.execute(sqlEnrollments);
             stmt.execute(sqlTeacher);
-
-            // Migration: ensure time_limit column exists in Courses (for older DBs)
-            try (ResultSet rs = stmt.executeQuery("PRAGMA table_info(Courses)")) {
-                boolean found = false;
-                while (rs.next()) {
-                    String col = rs.getString("name");
-                    if ("time_limit".equalsIgnoreCase(col)) { found = true; break; }
-                }
-                if (!found) {
-                    stmt.executeUpdate("ALTER TABLE Courses ADD COLUMN time_limit INTEGER DEFAULT 0");
-                    System.out.println("Added 'time_limit' column to Courses (migration)");
-                }
-            }
-
-            // Migration: ensure new columns exist in QuizScores: quiz_type, course_id
-            try (ResultSet rs2 = stmt.executeQuery("PRAGMA table_info(QuizScores)")) {
-                java.util.Set<String> cols = new java.util.HashSet<>();
-                while (rs2.next()) cols.add(rs2.getString("name").toLowerCase());
-                if (!cols.contains("quiz_type")) {
-                    stmt.executeUpdate("ALTER TABLE QuizScores ADD COLUMN quiz_type TEXT");
-                    System.out.println("Added 'quiz_type' column to QuizScores (migration)");
-                }
-                if (!cols.contains("course_id")) {
-                    stmt.executeUpdate("ALTER TABLE QuizScores ADD COLUMN course_id INTEGER");
-                    System.out.println("Added 'course_id' column to QuizScores (migration)");
-                }
-                // Migration: educator_id on QuizScores to associate general attempts with educator
-                if (!cols.contains("educator_id")) {
-                    stmt.executeUpdate("ALTER TABLE QuizScores ADD COLUMN educator_id INTEGER");
-                    System.out.println("Added 'educator_id' column to QuizScores (migration)");
-                }
-                // Migration: attemptDate (if older DB missing it)
-                if (!cols.contains("attemptdate")) {
-                    stmt.executeUpdate("ALTER TABLE QuizScores ADD COLUMN attemptDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
-                    System.out.println("Added 'attemptDate' column to QuizScores (migration)");
-                }
-            }
+            stmt.execute(sqlAnnouncements);
+            stmt.execute(sqlThreads);
+            stmt.execute(sqlMessages);
             
             System.out.println("All database tables checked/created successfully.");
             
@@ -254,8 +221,7 @@ while (rs.next()) {
             try (Connection connection = connect();
                 PreparedStatement pstmt = connection.prepareStatement(sql)) {
 
-                String s_id = "S" + id;
-                pstmt.setString(1, s_id);
+                pstmt.setInt(1, id);
                 pstmt.setDouble(2, 0.0);
                 pstmt.setString(3, "Undeclared");
                 pstmt.executeUpdate();
@@ -285,7 +251,7 @@ while (rs.next()) {
         }
     }
 
-    public void InsertUser(String name, int age, String gender, String birthDate, String email, String password, String role) {
+    public int InsertUser(String name, int age, String gender, String birthDate, String email, String password, String role) {
         String sql = "INSERT INTO user (name, age, gender, birthDate, email, password, role) VALUES (?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection connection = connect();
@@ -299,7 +265,11 @@ while (rs.next()) {
             pstmt.setString(6, password);
             pstmt.setString(7, role);
             
-            pstmt.executeUpdate();
+            int affected = pstmt.executeUpdate();
+            if (affected == 0) {
+                System.out.println("Error: no rows inserted for user.");
+                return -1;
+            }
             System.out.println("✓ User inserted successfully!");
 
             try (ResultSet rs = pstmt.getGeneratedKeys()) {
@@ -308,12 +278,14 @@ while (rs.next()) {
                     System.out.println("✓ Generated User ID: " + newId);
                     
                     role(role, name, gender, newId); 
+                    return newId;
                 }
             }
         } catch (SQLException e) {
             System.out.println("Error inserting user: " + e.getMessage());
             e.printStackTrace();
         }
+        return -1;
     }
 
     public User getAuthenticatedUser(String email, String password) {
@@ -446,7 +418,7 @@ public void insertQuestion(Question question, int educatorId, int courseId, Stri
             if (!hasResults) {
                 System.out.println("No results found for this student.");
             }
-            System.out.println("=========================================================\n");
+            System.out.println("=========================================================");
             
         } catch (SQLException e) {
             System.out.println("Error retrieving results: " + e.getMessage());
@@ -540,27 +512,6 @@ public void insertQuestion(Question question, int educatorId, int courseId, Stri
         return list;
     }
 
-    // Return list of forum threads (recent first)
-    public java.util.List<forum.ThreadModel> getThreads() {
-        java.util.List<forum.ThreadModel> list = new java.util.ArrayList<>();
-        String sql = "SELECT id, title, creator_id, created_at FROM Threads ORDER BY created_at DESC";
-        try (Connection conn = connect();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                list.add(new forum.ThreadModel(
-                    rs.getInt("id"),
-                    rs.getString("title"),
-                    rs.getInt("creator_id"),
-                    rs.getString("created_at")
-                ));
-            }
-        } catch (SQLException e) {
-            System.out.println("Error fetching threads: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return list;
-    }
     public int createThread(String title, int creatorId) {
         String sql = "INSERT INTO Threads (title, creator_id) VALUES (?, ?)";
         try (Connection conn = connect();
@@ -596,6 +547,64 @@ public void insertQuestion(Question question, int educatorId, int courseId, Stri
         }
         return -1;
     }
+
+    public java.util.List<forum.ThreadModel> getThreads() {
+        java.util.List<forum.ThreadModel> list = new java.util.ArrayList<>();
+        String sql = "SELECT id, title, creator_id, created_at FROM Threads ORDER BY created_at DESC";
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                list.add(new forum.ThreadModel(
+                    rs.getInt("id"),
+                    rs.getString("title"),
+                    rs.getInt("creator_id"),
+                    rs.getString("created_at")
+                ));
+            }
+        } catch (SQLException e) {
+            System.out.println("Error fetching threads: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    public int addMessage(int threadId, int authorId, String content) {
+        String sql = "INSERT INTO Messages (thread_id, author_id, content) VALUES (?, ?, ?)";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setInt(1, threadId);
+            pstmt.setInt(2, authorId);
+            pstmt.setString(3, content);
+            System.out.println("[DEBUG] addMessage: threadId=" + threadId + " authorId=" + authorId + " content='" + (content.length()>50?content.substring(0,50)+"...":content) + "'");
+            int affected = pstmt.executeUpdate();
+            System.out.println("[DEBUG] addMessage: rowsAffected=" + affected);
+            if (affected == 0) {
+                System.out.println("Error adding message: no rows affected.");
+                return -1;
+            }
+            try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    int id = rs.getInt(1);
+                    System.out.println("[DEBUG] addMessage: generatedKey=" + id);
+                    return id;
+                }
+            }
+            try (Statement stmt2 = conn.createStatement();
+                 ResultSet rs2 = stmt2.executeQuery("SELECT last_insert_rowid()")) {
+                if (rs2.next()) {
+                    int id2 = rs2.getInt(1);
+                    System.out.println("[DEBUG] addMessage: fallback last_insert_rowid=" + id2);
+                    return id2;
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error adding message: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
     public java.util.List<forum.Message> getMessagesByThread(int threadId) {
         java.util.List<forum.Message> list = new java.util.ArrayList<>();
         String sql = "SELECT M.id, M.thread_id, M.author_id, M.content, M.created_at, U.name as author_name FROM Messages M JOIN user U ON M.author_id = U.user_id WHERE M.thread_id = ? ORDER BY M.created_at ASC";
@@ -620,30 +629,6 @@ public void insertQuestion(Question question, int educatorId, int courseId, Stri
         return list;
     }
 
-    // Add a message to a thread and return generated message id (or -1 on failure)
-    public int addMessage(int threadId, int authorId, String content) {
-        String sql = "INSERT INTO Messages (thread_id, author_id, content) VALUES (?, ?, ?)";
-        try (Connection conn = connect();
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            pstmt.setInt(1, threadId);
-            pstmt.setInt(2, authorId);
-            pstmt.setString(3, content);
-            int affected = pstmt.executeUpdate();
-            if (affected == 0) return -1;
-            try (ResultSet rs = pstmt.getGeneratedKeys()) {
-                if (rs.next()) return rs.getInt(1);
-            }
-            try (Statement stmt2 = conn.createStatement();
-                 ResultSet rs2 = stmt2.executeQuery("SELECT last_insert_rowid()")) {
-                if (rs2.next()) return rs2.getInt(1);
-            }
-        } catch (SQLException e) {
-            System.out.println("Error adding message: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return -1;
-    }
-
     public String getUserNameById(int userId) {
         String sql = "SELECT name FROM user WHERE user_id = ?";
         try (Connection conn = connect();
@@ -657,5 +642,4 @@ public void insertQuestion(Question question, int educatorId, int courseId, Stri
         }
         return "Unknown";
     }
-    
 }

@@ -263,8 +263,12 @@ public class RegisterGUI extends JFrame {
             selectedRole = "EDUCATOR";
         }
 
-        // Save to database
-        dataStore.InsertUser(name, age, gender, birthDate, email, password, selectedRole);
+        // Save to database and get generated id
+        int newId = dataStore.InsertUser(name, age, gender, birthDate, email, password, selectedRole);
+        if (newId <= 0) {
+            JOptionPane.showMessageDialog(this, "Registration failed. Please try again.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         
         JOptionPane.showMessageDialog(this, 
             "Registration Successful!\nWelcome, " + name + "!", 
@@ -273,10 +277,10 @@ public class RegisterGUI extends JFrame {
         
         // Launch appropriate dashboard based on role
         if (role.equals("Student")) {
-            Student student = new Student(0, name, age, gender, birthDate, email, password);
+            Student student = new Student(newId, name, age, gender, birthDate, email, password);
             new StudentDashboard(student).setVisible(true);
         } else {
-            Educator educator = new Educator(0, name, age, gender, birthDate, email, password);
+            Educator educator = new Educator(newId, name, age, gender, birthDate, email, password);
             new EducatorDashboard(educator).setVisible(true);
         }
         
