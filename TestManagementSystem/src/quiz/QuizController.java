@@ -4,9 +4,9 @@ import java.util.Scanner;
 import auth.User;
 import auth.Role;
 import util.DataStore;
-import student.StudentDashboard;
+import gui.StudentDashboard;
 import student.Student;
-import educator.EducatorDashboard;
+import gui.EducatorDashboard;
 import educator.Educator;
 
 public class QuizController {

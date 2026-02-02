@@ -8,6 +8,7 @@ import auth.*;
 import educator.*;
 import quiz.*;
 import student.*;
+import forum.*;
 
 public class DataStore {
 
@@ -79,6 +80,30 @@ public class DataStore {
                         "name TEXT, " +
                         "gender TEXT, " +
                         "FOREIGN KEY(user_id) REFERENCES user(user_id))";
+
+        String sqlAnnouncements = "CREATE TABLE IF NOT EXISTS Announcements (" +
+                                  "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                                  "title TEXT NOT NULL, " +
+                                  "content TEXT NOT NULL, " +
+                                  "educator_id INTEGER NOT NULL, " +
+                                  "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                                  "FOREIGN KEY(educator_id) REFERENCES user(user_id))";
+
+        String sqlThreads = "CREATE TABLE IF NOT EXISTS Threads (" +
+                            "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                            "title TEXT NOT NULL, " +
+                            "creator_id INTEGER NOT NULL, " +
+                            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                            "FOREIGN KEY(creator_id) REFERENCES user(user_id))";
+
+        String sqlMessages = "CREATE TABLE IF NOT EXISTS Messages (" +
+                             "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                             "thread_id INTEGER NOT NULL, " +
+                             "author_id INTEGER NOT NULL, " +
+                             "content TEXT NOT NULL, " +
+                             "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                             "FOREIGN KEY(thread_id) REFERENCES Threads(id), " +
+                             "FOREIGN KEY(author_id) REFERENCES user(user_id))";
         
         try (Statement stmt = conn.createStatement()) {
             stmt.execute(sqlUser);
@@ -88,6 +113,9 @@ public class DataStore {
             stmt.execute(sqlStudent);
             stmt.execute(sqlEnrollments);
             stmt.execute(sqlTeacher);
+            stmt.execute(sqlAnnouncements);
+            stmt.execute(sqlThreads);
+            stmt.execute(sqlMessages);
             
             System.out.println("All database tables checked/created successfully.");
             
@@ -125,6 +153,12 @@ public class DataStore {
         try {
             Class.forName("org.sqlite.JDBC");
             connection = DriverManager.getConnection(url);
+            // Ensure foreign key enforcement is on
+            try (Statement pragma = connection.createStatement()) {
+                pragma.execute("PRAGMA foreign_keys = ON;");
+            } catch (SQLException pe) {
+                System.out.println("Warning: unable to enable foreign_keys PRAGMA: " + pe.getMessage());
+            }
             System.out.println("Database connected successfully!");
         } catch (ClassNotFoundException e) {
             System.out.println("SQLite Driver not found: " + e.getMessage());
@@ -170,8 +204,7 @@ while (rs.next()) {
             try (Connection connection = connect();
                 PreparedStatement pstmt = connection.prepareStatement(sql)) {
 
-                String s_id = "S" + id;
-                pstmt.setString(1, s_id);
+                pstmt.setInt(1, id);
                 pstmt.setDouble(2, 0.0);
                 pstmt.setString(3, "Undeclared");
                 pstmt.executeUpdate();
@@ -201,7 +234,7 @@ while (rs.next()) {
         }
     }
 
-    public void InsertUser(String name, int age, String gender, String birthDate, String email, String password, String role) {
+    public int InsertUser(String name, int age, String gender, String birthDate, String email, String password, String role) {
         String sql = "INSERT INTO user (name, age, gender, birthDate, email, password, role) VALUES (?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection connection = connect();
@@ -215,7 +248,11 @@ while (rs.next()) {
             pstmt.setString(6, password);
             pstmt.setString(7, role);
             
-            pstmt.executeUpdate();
+            int affected = pstmt.executeUpdate();
+            if (affected == 0) {
+                System.out.println("Error: no rows inserted for user.");
+                return -1;
+            }
             System.out.println("✓ User inserted successfully!");
 
             try (ResultSet rs = pstmt.getGeneratedKeys()) {
@@ -224,12 +261,14 @@ while (rs.next()) {
                     System.out.println("✓ Generated User ID: " + newId);
                     
                     role(role, name, gender, newId); 
+                    return newId;
                 }
             }
         } catch (SQLException e) {
             System.out.println("Error inserting user: " + e.getMessage());
             e.printStackTrace();
         }
+        return -1;
     }
 
     public User getAuthenticatedUser(String email, String password) {
@@ -354,11 +393,231 @@ public void insertQuestion(Question question, int educatorId, int courseId, Stri
             if (!hasResults) {
                 System.out.println("No results found for this student.");
             }
-            System.out.println("=========================================================\n");
+            System.out.println("=========================================================");
             
         } catch (SQLException e) {
             System.out.println("Error retrieving results: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    // ----------------- Forum related database methods -----------------
+
+    public int createAnnouncement(String title, String content, int educatorId) {
+        String sql = "INSERT INTO Announcements (title, content, educator_id) VALUES (?, ?, ?)";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setString(1, title);
+            pstmt.setString(2, content);
+            pstmt.setInt(3, educatorId);
+            System.out.println("[DEBUG] createAnnouncement: title='" + title + "' educatorId=" + educatorId);
+            int affected = pstmt.executeUpdate();
+            System.out.println("[DEBUG] createAnnouncement: rowsAffected=" + affected);
+            if (affected == 0) {
+                System.out.println("Error creating announcement: no rows affected.");
+                return -1;
+            }
+            try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    int id = rs.getInt(1);
+                    System.out.println("[DEBUG] createAnnouncement: generatedKey=" + id);
+                    return id;
+                }
+            }
+            try (Statement stmt2 = conn.createStatement();
+                 ResultSet rs2 = stmt2.executeQuery("SELECT last_insert_rowid()")) {
+                if (rs2.next()) {
+                    int id2 = rs2.getInt(1);
+                    System.out.println("[DEBUG] createAnnouncement: fallback last_insert_rowid=" + id2);
+                    return id2;
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error creating announcement: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    public void editAnnouncement(int id, String title, String content, int educatorId) {
+        String sql = "UPDATE Announcements SET title = ?, content = ? WHERE id = ? AND educator_id = ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, title);
+            pstmt.setString(2, content);
+            pstmt.setInt(3, id);
+            pstmt.setInt(4, educatorId);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("Error editing announcement: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteAnnouncement(int id, int educatorId) {
+        String sql = "DELETE FROM Announcements WHERE id = ? AND educator_id = ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            pstmt.setInt(2, educatorId);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("Error deleting announcement: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public java.util.List<forum.Announcement> getAnnouncements() {
+        java.util.List<forum.Announcement> list = new java.util.ArrayList<>();
+        String sql = "SELECT A.id, A.title, A.content, A.educator_id, A.created_at, U.name as educator_name FROM Announcements A JOIN user U ON A.educator_id = U.user_id ORDER BY A.created_at DESC";
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                list.add(new forum.Announcement(
+                    rs.getInt("id"),
+                    rs.getString("title"),
+                    rs.getString("content"),
+                    rs.getInt("educator_id"),
+                    rs.getString("created_at"),
+                    rs.getString("educator_name")
+                ));
+            }
+        } catch (SQLException e) {
+            System.out.println("Error fetching announcements: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    public int createThread(String title, int creatorId) {
+        String sql = "INSERT INTO Threads (title, creator_id) VALUES (?, ?)";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setString(1, title);
+            pstmt.setInt(2, creatorId);
+            System.out.println("[DEBUG] createThread: title='" + title + "' creatorId=" + creatorId);
+            int affected = pstmt.executeUpdate();
+            System.out.println("[DEBUG] createThread: rowsAffected=" + affected);
+            if (affected == 0) {
+                System.out.println("Error creating thread: no rows affected.");
+                return -1;
+            }
+            try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    int id = rs.getInt(1);
+                    System.out.println("[DEBUG] createThread: generatedKey=" + id);
+                    return id;
+                }
+            }
+            // Fallback for sqlite JDBC drivers that do not return generated keys
+            try (Statement stmt2 = conn.createStatement();
+                 ResultSet rs2 = stmt2.executeQuery("SELECT last_insert_rowid()")) {
+                if (rs2.next()) {
+                    int id2 = rs2.getInt(1);
+                    System.out.println("[DEBUG] createThread: fallback last_insert_rowid=" + id2);
+                    return id2;
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error creating thread: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    public java.util.List<forum.ThreadModel> getThreads() {
+        java.util.List<forum.ThreadModel> list = new java.util.ArrayList<>();
+        String sql = "SELECT id, title, creator_id, created_at FROM Threads ORDER BY created_at DESC";
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                list.add(new forum.ThreadModel(
+                    rs.getInt("id"),
+                    rs.getString("title"),
+                    rs.getInt("creator_id"),
+                    rs.getString("created_at")
+                ));
+            }
+        } catch (SQLException e) {
+            System.out.println("Error fetching threads: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    public int addMessage(int threadId, int authorId, String content) {
+        String sql = "INSERT INTO Messages (thread_id, author_id, content) VALUES (?, ?, ?)";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setInt(1, threadId);
+            pstmt.setInt(2, authorId);
+            pstmt.setString(3, content);
+            System.out.println("[DEBUG] addMessage: threadId=" + threadId + " authorId=" + authorId + " content='" + (content.length()>50?content.substring(0,50)+"...":content) + "'");
+            int affected = pstmt.executeUpdate();
+            System.out.println("[DEBUG] addMessage: rowsAffected=" + affected);
+            if (affected == 0) {
+                System.out.println("Error adding message: no rows affected.");
+                return -1;
+            }
+            try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    int id = rs.getInt(1);
+                    System.out.println("[DEBUG] addMessage: generatedKey=" + id);
+                    return id;
+                }
+            }
+            try (Statement stmt2 = conn.createStatement();
+                 ResultSet rs2 = stmt2.executeQuery("SELECT last_insert_rowid()")) {
+                if (rs2.next()) {
+                    int id2 = rs2.getInt(1);
+                    System.out.println("[DEBUG] addMessage: fallback last_insert_rowid=" + id2);
+                    return id2;
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error adding message: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    public java.util.List<forum.Message> getMessagesByThread(int threadId) {
+        java.util.List<forum.Message> list = new java.util.ArrayList<>();
+        String sql = "SELECT M.id, M.thread_id, M.author_id, M.content, M.created_at, U.name as author_name FROM Messages M JOIN user U ON M.author_id = U.user_id WHERE M.thread_id = ? ORDER BY M.created_at ASC";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, threadId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                list.add(new forum.Message(
+                    rs.getInt("id"),
+                    rs.getInt("thread_id"),
+                    rs.getInt("author_id"),
+                    rs.getString("content"),
+                    rs.getString("created_at"),
+                    rs.getString("author_name")
+                ));
+            }
+        } catch (SQLException e) {
+            System.out.println("Error fetching messages: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    public String getUserNameById(int userId) {
+        String sql = "SELECT name FROM user WHERE user_id = ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) return rs.getString("name");
+        } catch (SQLException e) {
+            System.out.println("Error fetching user name: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return "Unknown";
     }
 }

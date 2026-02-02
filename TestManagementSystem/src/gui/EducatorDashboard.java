@@ -65,6 +65,7 @@ public class EducatorDashboard extends JFrame {
         mainPanel.add(createCoursesPanel(), "courses");
         mainPanel.add(createStudentResultsPanel(), "results");
         mainPanel.add(createAnalyticsPanel(), "analytics");
+        mainPanel.add(new ForumPanel(educator), "forum");
         mainPanel.add(createProfilePanel(), "profile");
 
         bodyPanel.add(sidebarPanel, BorderLayout.WEST);
@@ -116,8 +117,8 @@ public class EducatorDashboard extends JFrame {
         sidebarPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, new Color(200, 200, 200)));
         sidebarPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
 
-        String[] menuItems = {"Dashboard", "Add Questions", "Manage Courses", "Student Results", "Analytics", "Profile"};
-        String[] panelNames = {"dashboard", "addQuestions", "courses", "results", "analytics", "profile"};
+        String[] menuItems = {"Dashboard", "Add Questions", "Manage Courses", "Student Results", "Analytics", "Forum", "Profile"};
+        String[] panelNames = {"dashboard", "addQuestions", "courses", "results", "analytics", "forum", "profile"};
 
         for (int i = 0; i < menuItems.length; i++) {
             JButton button = createSidebarButton(menuItems[i], panelNames[i]);

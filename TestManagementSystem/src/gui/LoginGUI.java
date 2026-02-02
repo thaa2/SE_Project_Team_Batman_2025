@@ -196,6 +196,9 @@ public class LoginGUI extends JFrame {
     }
 
     public static void main(String[] args) {
+        // Ensure DB tables exist before any GUI action
+        new util.DataStore().createTables();
+
         SwingUtilities.invokeLater(() -> {
             try {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
