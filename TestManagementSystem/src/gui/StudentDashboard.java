@@ -749,10 +749,6 @@ public class StudentDashboard extends JFrame {
         cardLayout.show(mainPanel, "dashboard");
     }
 
-    private void viewResults() {
-        dataStore.displayStudentResults(student.getName());
-    }
-
     private void enrollInCourse(int courseId) {
         try (java.sql.Connection conn = util.DataStore.connect()) {
             conn.setAutoCommit(false);
