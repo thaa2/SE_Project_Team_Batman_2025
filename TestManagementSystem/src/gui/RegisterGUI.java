@@ -256,10 +256,7 @@ public class RegisterGUI extends JFrame {
             return;
         }
         ageText = String.valueOf(age);
-
         
-
-
         // Password validation
         if (password.length() < 8 || !password.matches(".*\\d.*")) {
             showError("Password must be at least 8 characters and include a number");
