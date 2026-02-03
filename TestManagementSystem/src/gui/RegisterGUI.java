@@ -3,13 +3,18 @@ package gui;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.Date;
+import java.util.Calendar;
+import java.text.SimpleDateFormat;
+import javax.swing.SpinnerDateModel;
 import util.DataStore;
 import educator.Educator;
 import student.Student;
 import auth.*;
 
 public class RegisterGUI extends JFrame {
-    private JTextField nameField, emailField, ageField, birthDateField;
+    private JTextField nameField, emailField, ageField;
+    private JSpinner birthDateSpinner;
     private JPasswordField passwordField, confirmPasswordField;
     private JComboBox<String> genderCombo, roleCombo;
     private JButton registerButton, loginButton;
@@ -93,6 +98,8 @@ public class RegisterGUI extends JFrame {
         // Age
         addFieldLabel(cardPanel, "Age", 30, yPos);
         ageField = addTextField(cardPanel, 30, yPos + 25, 180, fieldHeight);
+        ageField.setEditable(false);
+        ageField.setBackground(new Color(245, 245, 245));
         
         // Gender (same row)
         addFieldLabel(cardPanel, "Gender", 230, yPos);
@@ -104,10 +111,25 @@ public class RegisterGUI extends JFrame {
         cardPanel.add(genderCombo);
         yPos += spacing;
 
-        // Birth Date
+        // Birth Date (Spinner)
         addFieldLabel(cardPanel, "Birth Date (DD/MM/YYYY)", 30, yPos);
-        birthDateField = addTextField(cardPanel, 30, yPos + 25, 180, fieldHeight);
-        birthDateField.setToolTipText("Format: DD/MM/YYYY");
+        Calendar calDefault = Calendar.getInstance();
+        calDefault.add(Calendar.YEAR, -18); // default to 18 years ago
+        Date defaultDate = calDefault.getTime();
+        SpinnerDateModel dateModel = new SpinnerDateModel(defaultDate, null, null, Calendar.DAY_OF_MONTH);
+        birthDateSpinner = new JSpinner(dateModel);
+        JSpinner.DateEditor dateEditor = new JSpinner.DateEditor(birthDateSpinner, "dd/MM/yyyy");
+        birthDateSpinner.setEditor(dateEditor);
+        birthDateSpinner.setBounds(30, yPos + 25, 180, fieldHeight);
+        birthDateSpinner.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        cardPanel.add(birthDateSpinner);
+        birthDateSpinner.addChangeListener(e -> {
+            Date d = (Date) birthDateSpinner.getValue();
+            int calcAge = calculateAge(d);
+            ageField.setText(String.valueOf(calcAge));
+        });
+        // set initial age based on default date
+        ageField.setText(String.valueOf(calculateAge(defaultDate)));
         
         // Role (same row)
         addFieldLabel(cardPanel, "Role", 230, yPos);
@@ -117,7 +139,7 @@ public class RegisterGUI extends JFrame {
         roleCombo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         roleCombo.setBackground(Color.WHITE);
         cardPanel.add(roleCombo);
-        yPos += spacing;
+        yPos += spacing; 
 
         // Password
         addFieldLabel(cardPanel, "Password", 30, yPos);
@@ -204,7 +226,12 @@ public class RegisterGUI extends JFrame {
         String name = nameField.getText().trim();
         String email = emailField.getText().trim();
         String ageText = ageField.getText().trim();
-        String birthDate = birthDateField.getText().trim();
+        Date birthDateValue = (Date) birthDateSpinner.getValue();
+        if (birthDateValue.after(new Date())) {
+            showError("Birth date cannot be in the future");
+            return;
+        }
+        String birthDate = new SimpleDateFormat("dd/MM/yyyy").format(birthDateValue);
         String password = new String(passwordField.getPassword());
         String confirmPassword = new String(confirmPasswordField.getPassword());
         String gender = (String) genderCombo.getSelectedItem();
@@ -222,24 +249,16 @@ public class RegisterGUI extends JFrame {
             return;
         }
 
-        // Age validation
-        int age;
-        try {
-            age = Integer.parseInt(ageText);
-            if (age <= 0 || age > 120) {
-                showError("Please enter a valid age (1-120)");
-                return;
-            }
-        } catch (NumberFormatException e) {
-            showError("Age must be a number");
+        // Age calculation/validation from birth date
+        int age = calculateAge(birthDateValue);
+        if (age <= 0 || age > 120) {
+            showError("Please enter a valid age (1-120)");
             return;
         }
+        ageText = String.valueOf(age);
 
-        // Birth date validation
-        if (!birthDate.matches("\\d{2}/\\d{2}/\\d{4}")) {
-            showError("Birth date format must be DD/MM/YYYY");
-            return;
-        }
+        
+
 
         // Password validation
         if (password.length() < 8 || !password.matches(".*\\d.*")) {
@@ -291,6 +310,17 @@ public class RegisterGUI extends JFrame {
     private void openLoginForm() {
         new LoginGUI().setVisible(true);
         dispose();
+    }
+
+    private int calculateAge(Date birthDate) {
+        Calendar b = Calendar.getInstance();
+        b.setTime(birthDate);
+        Calendar now = Calendar.getInstance();
+        int age = now.get(Calendar.YEAR) - b.get(Calendar.YEAR);
+        if (now.get(Calendar.DAY_OF_YEAR) < b.get(Calendar.DAY_OF_YEAR)) {
+            age--;
+        }
+        return age;
     }
 
     private void showError(String message) {

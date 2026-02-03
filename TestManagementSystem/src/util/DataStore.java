@@ -29,7 +29,8 @@ public class DataStore {
                         "gender TEXT, " +
                         "birthDate TEXT, " +
                         "email TEXT UNIQUE NOT NULL, " +
-                        "password TEXT NOT NULL, " +
+                        "password_hash TEXT NOT NULL, " +
+                        "password_salt TEXT NOT NULL, " +
                         "role TEXT NOT NULL)";
 
         String sqlCourses = "CREATE TABLE IF NOT EXISTS Courses (" +
@@ -59,10 +60,12 @@ public class DataStore {
                         "percentage REAL, " +
                         "quiz_type TEXT, " +
                         "course_id INTEGER, " +
-                        "attemptDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP)";
+                        "educator_id INTEGER, " +
+                        "attemptDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                        "FOREIGN KEY(educator_id) REFERENCES user(user_id))";
         
         String sqlStudent = "CREATE TABLE IF NOT EXISTS student (" +
-                        "student_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "student_id TEXT PRIMARY KEY, " +
                         "user_id INTEGER UNIQUE, " +
                         "gpa REAL, " +
                         "major TEXT, " +
@@ -132,6 +135,61 @@ public class DataStore {
             stmt.execute(sqlAnnouncements);
             stmt.execute(sqlThreads);
             stmt.execute(sqlMessages);
+            
+            // Migrate existing plaintext passwords into salted hashes if needed
+            try (ResultSet cols = stmt.executeQuery("PRAGMA table_info('user')")) {
+                boolean hasHash = false;
+                boolean hasPlain = false;
+                while (cols.next()) {
+                    String colName = cols.getString("name");
+                    if ("password_hash".equalsIgnoreCase(colName)) hasHash = true;
+                    if ("password".equalsIgnoreCase(colName)) hasPlain = true;
+                }
+                if (!hasHash && hasPlain) {
+                    System.out.println("Migrating plaintext passwords to hashed passwords...");
+                    stmt.execute("ALTER TABLE user ADD COLUMN password_hash TEXT");
+                    stmt.execute("ALTER TABLE user ADD COLUMN password_salt TEXT");
+                    try (PreparedStatement select = conn.prepareStatement("SELECT user_id, password FROM user");
+                         ResultSet rs2 = select.executeQuery()) {
+                        while (rs2.next()) {
+                            int uid = rs2.getInt("user_id");
+                            String plain = rs2.getString("password");
+                            if (plain != null && !plain.isEmpty()) {
+                                String salt = hashingpassword.generateSalt();
+                                String hash = hashingpassword.hashPassword(plain, salt);
+                                try (PreparedStatement up = conn.prepareStatement("UPDATE user SET password_hash = ?, password_salt = ? WHERE user_id = ?")) {
+                                    up.setString(1, hash);
+                                    up.setString(2, salt);
+                                    up.setInt(3, uid);
+                                    up.executeUpdate();
+                                }
+                            }
+                        }
+                    }
+                    // Overwrite old password column for safety
+                    stmt.execute("UPDATE user SET password = NULL");
+                    System.out.println("Migration completed.");
+                }
+
+                // Ensure QuizScores has educator_id column (used by various queries). Add if missing.
+                try (ResultSet qsCols = stmt.executeQuery("PRAGMA table_info('QuizScores')")) {
+                    boolean hasEduId = false;
+                    while (qsCols.next()) {
+                        String colName = qsCols.getString("name");
+                        if ("educator_id".equalsIgnoreCase(colName)) { hasEduId = true; break; }
+                    }
+                    if (!hasEduId) {
+                        System.out.println("Adding educator_id column to QuizScores table...");
+                        stmt.execute("ALTER TABLE QuizScores ADD COLUMN educator_id INTEGER");
+                        // No FK can be added with ALTER TABLE in SQLite easily; foreign key enforcement if present will still work for values.
+                        System.out.println("Added educator_id column to QuizScores.");
+                    }
+                } catch (SQLException e) {
+                    System.out.println("Failed to ensure educator_id column: " + e.getMessage());
+                }
+            } catch (SQLException e) {
+                System.out.println("Password migration failed: " + e.getMessage());
+            }
             
             System.out.println("All database tables checked/created successfully.");
             
@@ -216,13 +274,12 @@ while (rs.next()) {
 
     public void role(String role, String name, String gender, int id) throws SQLException {
         if (role.equalsIgnoreCase("STUDENT")) {
-            String sql = "INSERT INTO student (user_id, gpa, major) VALUES (?, ?, ?)";
+            String sql = "INSERT INTO student (user_id, major) VALUES (?, ?)";
             try (Connection connection = connect();
                 PreparedStatement pstmt = connection.prepareStatement(sql)) {
-
-                pstmt.setInt(1, id);
-                pstmt.setDouble(2, 0.0);
-                pstmt.setString(3, "Undeclared");
+                String s_id = "S" + id;
+                pstmt.setString(1, s_id);
+                pstmt.setString(2, "Undeclared");
                 pstmt.executeUpdate();
                 System.out.println("✓ Student saved!");
             } catch (SQLException e) {
@@ -251,18 +308,23 @@ while (rs.next()) {
     }
 
     public int InsertUser(String name, int age, String gender, String birthDate, String email, String password, String role) {
-        String sql = "INSERT INTO user (name, age, gender, birthDate, email, password, role) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO user (name, age, gender, birthDate, email, password_hash, password_salt, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection connection = connect();
             PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
+            // Generate salt and hash for the incoming plaintext password
+            String salt = hashingpassword.generateSalt();
+            String hash = hashingpassword.hashPassword(password, salt);
+
             pstmt.setString(1, name);
             pstmt.setInt(2, age);
             pstmt.setString(3, gender);
             pstmt.setString(4, birthDate);
             pstmt.setString(5, email);
-            pstmt.setString(6, password);
-            pstmt.setString(7, role);
+            pstmt.setString(6, hash);
+            pstmt.setString(7, salt);
+            pstmt.setString(8, role);
             
             int affected = pstmt.executeUpdate();
             if (affected == 0) {
@@ -288,31 +350,51 @@ while (rs.next()) {
     }
 
     public User getAuthenticatedUser(String email, String password) {
-        String sql = "SELECT * FROM user WHERE email = ? AND password = ?";
+        String sql = "SELECT * FROM user WHERE email = ?";
         
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, email);
-            pstmt.setString(2, password);
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                int id = rs.getInt("user_id"); 
+                int id = rs.getInt("user_id");
                 String name = rs.getString("name");
                 int age = rs.getInt("age");
                 String gender = rs.getString("gender");
                 String birthDate = rs.getString("birthDate");
                 String roleStr = rs.getString("role");
+                String storedHash = null;
+                String storedSalt = null;
+                try {
+                    storedHash = rs.getString("password_hash");
+                    storedSalt = rs.getString("password_salt");
+                } catch (SQLException e) {
+                    // older DB may have only 'password' column
+                    storedHash = rs.getString("password");
+                    storedSalt = null;
+                }
 
-                // Debug log for role value
-                System.out.println("Login attempt: email=" + email + ", roleField='" + roleStr + "'");
+                // Verify password
+                boolean verified = false;
+                if (storedSalt != null && storedHash != null) {
+                    verified = hashingpassword.verifyPassword(password, storedSalt, storedHash);
+                } else if (storedHash != null) {
+                    // If only stored hash present without salt (unlikely), compare directly
+                    verified = storedHash.equals(password);
+                }
+
+                if (!verified) {
+                    System.out.println("Invalid credentials for email: " + email);
+                    return null;
+                }
 
                 // Accept common variants for educator role (EDUCATOR, Teacher, etc.)
                 if (roleStr != null && (roleStr.equalsIgnoreCase("EDUCATOR") || roleStr.equalsIgnoreCase("TEACHER") || roleStr.toUpperCase().contains("EDU"))) {
-                    return new Educator(id, name, age, gender, birthDate, email, password);
+                    return new Educator(id, name, age, gender, birthDate, email, storedHash != null ? storedHash : "");
                 } else if (roleStr != null && roleStr.equalsIgnoreCase("STUDENT")) {
-                    return new Student(id, name, age, gender, birthDate, email, password);
+                    return new Student(id, name, age, gender, birthDate, email, storedHash != null ? storedHash : "");
                 } else {
                     // Unknown role stored in DB — log and return null so login fails with clear console info
                     System.out.println("Unknown role stored for user " + email + ": '" + roleStr + "'");
@@ -640,5 +722,54 @@ public void insertQuestion(Question question, int educatorId, int courseId, Stri
             e.printStackTrace();
         }
         return "Unknown";
+    }
+
+    /**
+     * Returns the numeric student_id (student.student_id) for the given user_id,
+     * or -1 if no student record exists.
+     */
+    public int getStudentDbIdByUserId(int userId) {
+        String sql = "SELECT student_id FROM student WHERE user_id = ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) return rs.getInt("student_id");
+        } catch (SQLException e) {
+            System.out.println("Error fetching student id: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    /**
+     * Returns a display identifier for the student (e.g., "S12"). If no
+     * student record exists, falls back to "S" + userId to provide a stable label.
+     */
+    public String getStudentIdentifierByUserId(int userId) {
+        int sid = getStudentDbIdByUserId(userId);
+        if (sid > 0) return "S" + sid;
+        return "S" + userId;
+    }
+
+    /**
+     * Returns the teacher identifier stored in `teacher.teacher_id` (e.g., "T3").
+     * If no teacher row exists, falls back to "T" + userId.
+     */
+    public String getTeacherIdentifierByUserId(int userId) {
+        String sql = "SELECT teacher_id FROM teacher WHERE user_id = ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                String t = rs.getString("teacher_id");
+                if (t != null && !t.trim().isEmpty()) return t;
+            }
+        } catch (SQLException e) {
+            System.out.println("Error fetching teacher id: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return "T" + userId;
     }
 }

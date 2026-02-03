@@ -18,6 +18,7 @@ import educator.Educator;
 
 public class EducatorDashboard extends JFrame {
     private Educator educator;
+    private DataStore dataStore;
     private JPanel mainPanel;
     private CardLayout cardLayout;
     private QuizService quizService; 
@@ -44,6 +45,7 @@ public class EducatorDashboard extends JFrame {
     public EducatorDashboard(Educator educator) {
         this.educator = educator;
         this.quizService = new QuizService();
+        this.dataStore = new DataStore();
 
         // Safety: wrap UI initialization so any exception is shown to the user and logged
         System.out.println("Opening EducatorDashboard for user id=" + (educator != null ? educator.getUserId() : "null") + ", name=" + (educator != null ? educator.getName() : "null"));
@@ -1400,8 +1402,8 @@ public class EducatorDashboard extends JFrame {
         profileCard.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
         profileCard.setBackground(Color.WHITE);
 
-        String[] labels = {"Name:", "Email:", "Age:", "Gender:", "Birth Date:", "User ID:"};
-        String[] values = {educator.getName(), educator.getEmail(), String.valueOf(educator.getAge()), educator.getGender(), educator.getBirthDate(), String.valueOf(educator.getUserId())};
+        String[] labels = {"Name:", "Email:", "Age:", "Gender:", "Birth Date:", "Teacher ID:"};
+        String[] values = {educator.getName(), educator.getEmail(), String.valueOf(educator.getAge()), educator.getGender(), educator.getBirthDate(), dataStore.getTeacherIdentifierByUserId(educator.getUserId())};
 
         for (int i = 0; i < labels.length; i++) {
             JPanel fieldPanel = new JPanel(new BorderLayout(10, 0));

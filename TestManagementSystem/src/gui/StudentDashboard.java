@@ -791,8 +791,8 @@ public class StudentDashboard extends JFrame {
         profileCard.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
         profileCard.setBackground(Color.WHITE);
 
-        String[] labels = {"Name:", "Email:", "Age:", "Gender:", "Birth Date:", "User ID:"};
-        String[] values = {student.getName(), student.getEmail(), String.valueOf(student.getAge()), student.getGender(), student.getBirthDate(), String.valueOf(student.getUserId())};
+        String[] labels = {"Name:", "Email:", "Age:", "Gender:", "Birth Date:", "Student ID:"};
+        String[] values = {student.getName(), student.getEmail(), String.valueOf(student.getAge()), student.getGender(), student.getBirthDate(), dataStore.getStudentIdentifierByUserId(student.getUserId())};
 
         for (int i = 0; i < labels.length; i++) {
             JPanel fieldPanel = new JPanel(new BorderLayout(10, 0));
