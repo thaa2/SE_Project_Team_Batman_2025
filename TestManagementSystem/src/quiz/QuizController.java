@@ -3,7 +3,6 @@ package quiz;
 import java.util.Scanner;
 import auth.User;
 import auth.Role;
-import util.DataStore;
 import gui.StudentDashboard;
 import student.Student;
 import gui.EducatorDashboard;

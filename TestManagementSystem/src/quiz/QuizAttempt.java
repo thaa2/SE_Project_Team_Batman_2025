@@ -11,7 +11,21 @@ public class QuizAttempt {
     private Map<Integer, Character> studentAnswers = new HashMap<>();
     private Scanner scanner;
     private QuizService service;
+    private int score = 0; // store computed score
 
+    // metadata to persist
+    private int courseId = 0; // 0 = general / none
+    private String quizType = "GENERAL"; // or "COURSE"
+    private int educatorId = 0; // optional: which educator provided the quiz (for GENERAL quizzes)
+
+    // Backwards-compatible constructor with educatorId
+    public QuizAttempt(String studentName, Quiz quiz, QuizService service, int courseId, String quizType, int educatorId) {
+        this(studentName, quiz, service, courseId, quizType);
+        this.educatorId = educatorId;
+    }
+
+    public int getEducatorId() { return educatorId; }
+    public void setEducatorId(int id) { this.educatorId = id; }
     public QuizAttempt(String studentName, Quiz quiz, Scanner scanner, QuizService service) {
         this.studentName = studentName;
         this.quiz = quiz;
@@ -19,7 +33,29 @@ public class QuizAttempt {
         this.service = service;
     }
 
+    // Overloaded constructor for GUI usage (no Scanner required)
+    public QuizAttempt(String studentName, Quiz quiz, QuizService service) {
+        this(studentName, quiz, null, service);
+    }
+
+    // Overloaded constructor with metadata
+    public QuizAttempt(String studentName, Quiz quiz, QuizService service, int courseId, String quizType) {
+        this(studentName, quiz, null, service);
+        this.courseId = courseId;
+        this.quizType = quizType;
+    }
+
+    public int getCourseId() { return courseId; }
+    public String getQuizType() { return quizType; }
+    public void setCourseId(int id) { this.courseId = id; }
+    public void setQuizType(String t) { this.quizType = t; }
+
     public void run() {
+        if (scanner == null) {
+            // No console mode - GUI should use getters/setters and call grading directly
+            return;
+        }
+
         System.out.println("\n--- Starting Quiz: " + quiz.getTitle() + " ---");
 
         for (Question q : quiz.getQuestions()) {
@@ -58,6 +94,7 @@ public class QuizAttempt {
 
         // Invoke Auto-Grading
         int finalScore = service.processGrading(this);
+        this.setScore(finalScore);
         
         System.out.println("\n" + "=".repeat(30));
         System.out.println("QUIZ COMPLETE: " + studentName);
@@ -70,11 +107,11 @@ public class QuizAttempt {
     }
 
     public void setScore(int score) {
-        // This is handled by QuizService
+        this.score = score;
     }
 
     public int getScore() {
-        return 0; // Will be set by QuizService after grading
+        return this.score;
     }
 
     public Map<Integer, Character> getAnswers() { return studentAnswers; }

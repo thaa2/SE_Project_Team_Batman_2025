@@ -4,6 +4,10 @@ import java.io.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.ResultSet;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import util.*;
 
@@ -26,9 +30,9 @@ public class QuizService {
             }
         }
         
-        // Save to both file and database
+        // Save to both file and database. Include metadata (course, quiz type and educator) when available.
         saveToFile(attempt.getStudentName(), score, questions.size());
-        saveToDatabase(attempt.getStudentName(), score, questions.size());
+        saveToDatabase(attempt.getStudentName(), score, questions.size(), attempt.getCourseId(), attempt.getQuizType(), attempt.getEducatorId());
         return score;
     }
 
@@ -42,16 +46,22 @@ public class QuizService {
         }
     }
 
-    private void saveToDatabase(String studentName, int score, int totalQuestions) {
-        String sql = "INSERT INTO QuizScores (studentName, totalScore, totalQuestions, percentage) VALUES (?, ?, ?, ?)";
+    private void saveToDatabase(String studentName, int score, int totalQuestions, Integer courseId, String quizType, Integer educatorId) {
+        String sql = "INSERT INTO QuizScores (studentName, totalScore, totalQuestions, percentage, course_id, quiz_type, attemptDate, educator_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (java.sql.Connection conn = util.DataStore.connect();
              java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
-            double percentage = ((double) score / totalQuestions) * 100;
+            double percentage = (totalQuestions > 0) ? ((double) score / totalQuestions) * 100 : 0.0;
+            String attemptDate = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
             pstmt.setString(1, studentName);
             pstmt.setInt(2, score);
             pstmt.setInt(3, totalQuestions);
             pstmt.setDouble(4, percentage);
+            if (courseId != null && courseId > 0) pstmt.setInt(5, courseId); else pstmt.setNull(5, java.sql.Types.INTEGER);
+            pstmt.setString(6, quizType != null ? quizType : "GENERAL");
+            pstmt.setString(7, attemptDate);
+            if (educatorId != null && educatorId > 0) pstmt.setInt(8, educatorId); else pstmt.setNull(8, java.sql.Types.INTEGER);
             pstmt.executeUpdate();
         } catch (java.sql.SQLException e) {
             System.out.println("Error saving score to database: " + e.getMessage());
@@ -60,7 +70,7 @@ public class QuizService {
 
     public List<Question> getQuestionsByTeacher(int teacherId) {
         List<Question> questions = new ArrayList<>();
-        String sql = "SELECT id, text, correctAnswer, options, questionType FROM Questions WHERE educator_id = ? ORDER BY id ASC";
+        String sql = "SELECT id, text, correctAnswer, options, questionType, course_id FROM Questions WHERE educator_id = ? ORDER BY id ASC";
         try (java.sql.Connection conn = util.DataStore.connect();
              java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, teacherId);
@@ -72,16 +82,17 @@ public class QuizService {
                 String correctAnswer = rs.getString("correctAnswer");
                 String type = rs.getString("questionType");
                 String optionsStr = rs.getString("options");
+                int courseId = rs.getInt("course_id");
                 
                 if ("MCQ".equals(type)) {
                     String[] options = optionsStr != null ? optionsStr.split("\\|") : new String[]{"A", "B", "C"};
-                    questions.add(new Question(id, text, options, correctAnswer, type));
+                    questions.add(new Question(id, text, options, correctAnswer, type, courseId));
                 } else if ("TF".equals(type)) {
                     String[] tfOptions = {"True", "False"};
-                    questions.add(new Question(id, text, tfOptions, correctAnswer, type));
+                    questions.add(new Question(id, text, tfOptions, correctAnswer, type, courseId));
                 } else {
                     // SHORT answer or other types
-                    questions.add(new Question(id, text, correctAnswer, type));
+                    questions.add(new Question(id, text, correctAnswer, type, courseId));
                 }
             }
         } catch (java.sql.SQLException e) {
@@ -92,7 +103,7 @@ public class QuizService {
 
     public List<Question> getQuestionsByTeacherAndCourse(int teacherId, int courseId) {
         List<Question> questions = new ArrayList<>();
-        String sql = "SELECT id, text, correctAnswer, options, questionType FROM Questions WHERE educator_id = ? AND course_id = ? ORDER BY id ASC";
+        String sql = "SELECT id, text, correctAnswer, options, questionType, course_id FROM Questions WHERE educator_id = ? AND course_id = ? ORDER BY id ASC";
         try (java.sql.Connection conn = util.DataStore.connect();
              java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, teacherId);
@@ -105,20 +116,53 @@ public class QuizService {
                 String correctAnswer = rs.getString("correctAnswer");
                 String type = rs.getString("questionType");
                 String optionsStr = rs.getString("options");
+                int courseIdRes = rs.getInt("course_id");
                 
                 if ("MCQ".equals(type)) {
                     String[] options = optionsStr != null ? optionsStr.split("\\|") : new String[]{"A", "B", "C"};
-                    questions.add(new Question(id, text, options, correctAnswer, type));
+                    questions.add(new Question(id, text, options, correctAnswer, type, courseIdRes));
                 } else if ("TF".equals(type)) {
                     String[] tfOptions = {"True", "False"};
-                    questions.add(new Question(id, text, tfOptions, correctAnswer, type));
+                    questions.add(new Question(id, text, tfOptions, correctAnswer, type, courseIdRes));
                 } else {
                     // SHORT answer or other types
-                    questions.add(new Question(id, text, correctAnswer, type));
+                    questions.add(new Question(id, text, correctAnswer, type, courseIdRes));
                 }
             }
         } catch (java.sql.SQLException e) {
             System.out.println("Error fetching questions: " + e.getMessage());
+        }
+        return questions;
+    }
+
+    // Return only general questions (not linked to any course)
+    public List<Question> getGeneralQuestionsByTeacher(int teacherId) {
+        List<Question> questions = new ArrayList<>();
+        String sql = "SELECT id, text, correctAnswer, options, questionType, course_id FROM Questions WHERE educator_id = ? AND (course_id IS NULL OR course_id = 0) ORDER BY id ASC";
+        try (java.sql.Connection conn = util.DataStore.connect();
+             java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, teacherId);
+            java.sql.ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                int id = rs.getInt("id");
+                String text = rs.getString("text");
+                String correctAnswer = rs.getString("correctAnswer");
+                String type = rs.getString("questionType");
+                String optionsStr = rs.getString("options");
+                int courseId = rs.getInt("course_id");
+
+                if ("MCQ".equals(type)) {
+                    String[] options = optionsStr != null ? optionsStr.split("\\|") : new String[]{"A", "B", "C"};
+                    questions.add(new Question(id, text, options, correctAnswer, type, courseId));
+                } else if ("TF".equals(type)) {
+                    String[] tfOptions = {"True", "False"};
+                    questions.add(new Question(id, text, tfOptions, correctAnswer, type, courseId));
+                } else {
+                    questions.add(new Question(id, text, correctAnswer, type, courseId));
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            System.out.println("Error fetching general questions: " + e.getMessage());
         }
         return questions;
     }
@@ -139,37 +183,54 @@ public class QuizService {
     }
 
     private void saveAttempt(QuizAttempt attempt) {
+        String sql = "INSERT INTO QuizScores (studentName, totalScore, totalQuestions, percentage, course_id, quiz_type, attemptDate, educator_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DataStore.connect()) {
             conn.setAutoCommit(false);
-            try {
-                String sql1 = "INSERT INTO QuizScores (studentName, questionId, selectedAnswer) VALUES (?, ?, ?)";
-                try (PreparedStatement pstmt = conn.prepareStatement(sql1)) {
-                    for (Question q : attempt.getQuiz().getQuestions()) {
-                        Character ans = attempt.getAnswers().get(q.getId());
-                        pstmt.setString(1, attempt.getStudentName());
-                        pstmt.setInt(2, q.getId());
-                        pstmt.setString(3, ans != null ? ans.toString() : " ");
-                        pstmt.addBatch();
-                    }
-                    pstmt.executeBatch();
+            try (PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                int totalQuestions = attempt.getQuiz().getQuestions() != null ? attempt.getQuiz().getQuestions().size() : 0;
+                double percentage = (totalQuestions > 0) ? ((double) attempt.getScore() / totalQuestions) * 100 : 0.0;
+                String attemptDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+                pstmt.setString(1, attempt.getStudentName());
+                pstmt.setInt(2, attempt.getScore());
+                pstmt.setInt(3, totalQuestions);
+                pstmt.setDouble(4, percentage);
+                if (attempt.getCourseId() > 0) pstmt.setInt(5, attempt.getCourseId()); else pstmt.setNull(5, java.sql.Types.INTEGER);
+                pstmt.setString(6, attempt.getQuizType() != null ? attempt.getQuizType() : "GENERAL");
+                pstmt.setString(7, attemptDate);
+                if (attempt.getEducatorId() > 0) pstmt.setInt(8, attempt.getEducatorId()); else pstmt.setNull(8, java.sql.Types.INTEGER);
+
+                pstmt.executeUpdate();
+
+                long attemptId = -1;
+                try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                    if (rs.next()) attemptId = rs.getLong(1);
                 }
 
-                double percentage = (double) attempt.getScore() / attempt.getQuiz().getQuestions().size() * 100;
-                String sql2 = "INSERT INTO QuizScores (studentName, totalScore, totalQuestions, percentage) VALUES (?, ?, ?, ?)";
-                try (PreparedStatement pstmt2 = conn.prepareStatement(sql2)) {
-                    pstmt2.setString(1, attempt.getStudentName());
-                    pstmt2.setInt(2, attempt.getScore());
-                    pstmt2.setInt(3, attempt.getQuiz().getQuestions().size());
-                    pstmt2.setDouble(4, percentage);
-                    pstmt2.executeUpdate();
+                if (attemptId > 0) {
+                    String sqlDetail = "INSERT INTO AttemptDetails (attempt_id, question_id, selectedAnswer) VALUES (?, ?, ?)";
+                    try (PreparedStatement pdet = conn.prepareStatement(sqlDetail)) {
+                        for (Question q : attempt.getQuiz().getQuestions()) {
+                            Character ans = attempt.getAnswers().get(q.getId());
+                            String sel = ans != null ? ans.toString() : "";
+                            pdet.setLong(1, attemptId);
+                            pdet.setInt(2, q.getId());
+                            pdet.setString(3, sel);
+                            pdet.addBatch();
+                        }
+                        pdet.executeBatch();
+                    }
                 }
+
                 conn.commit();
+                System.out.println("✓ Saved quiz attempt for " + attempt.getStudentName() + " : " + attempt.getScore() + "/" + totalQuestions + " (id=" + attemptId + ")");
             } catch (SQLException e) {
                 conn.rollback();
                 throw e;
             }
-        } catch (SQLException e) { 
+        } catch (SQLException e) {
             System.err.println("Error saving attempt: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -240,5 +301,44 @@ public class QuizService {
     public Object getAllQuestions() {
         
         throw new UnsupportedOperationException("Unimplemented method 'getAllQuestions'");
+    }
+
+    // Update an existing question. Returns true on success.
+    public boolean updateQuestion(Question q, int educatorId) {
+        String sql = "UPDATE Questions SET text = ?, options = ?, correctAnswer = ?, questionType = ?, course_id = ? WHERE id = ? AND educator_id = ?";
+        try (Connection conn = DataStore.connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, q.getText());
+            if (q.getOptions() != null) pstmt.setString(2, String.join("|", q.getOptions())); else pstmt.setNull(2, java.sql.Types.VARCHAR);
+            pstmt.setString(3, q.getCorrectAnswer());
+            pstmt.setString(4, q.getQuestionType());
+            if (q.getCourseId() > 0) pstmt.setInt(5, q.getCourseId()); else pstmt.setNull(5, java.sql.Types.INTEGER);
+            pstmt.setInt(6, q.getId());
+            pstmt.setInt(7, educatorId);
+
+            int updated = pstmt.executeUpdate();
+            if (updated > 0) System.out.println("✓ Question updated (id=" + q.getId() + ")");
+            return updated > 0;
+        } catch (SQLException e) {
+            System.out.println("Error updating question: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // Delete a question that belongs to the educator
+    public boolean deleteQuestion(int questionId, int educatorId) {
+        String sql = "DELETE FROM Questions WHERE id = ? AND educator_id = ?";
+        try (Connection conn = DataStore.connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, questionId);
+            pstmt.setInt(2, educatorId);
+            int deleted = pstmt.executeUpdate();
+            if (deleted > 0) System.out.println("✓ Question deleted (id=" + questionId + ")");
+            return deleted > 0;
+        } catch (SQLException e) {
+            System.out.println("Error deleting question: " + e.getMessage());
+            return false;
+        }
     }
 }

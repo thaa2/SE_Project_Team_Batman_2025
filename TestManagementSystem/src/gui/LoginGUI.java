@@ -17,6 +17,8 @@ public class LoginGUI extends JFrame {
 
     public LoginGUI() {
         dataStore = new DataStore();
+        // Ensure database tables exist when launching via GUI
+        dataStore.createTables();
         initializeUI();
     }
 
@@ -168,18 +170,31 @@ public class LoginGUI extends JFrame {
 
         if (authenticatedUser != null) {
             showMessage("Welcome back, " + authenticatedUser.getName() + "!", "Success", JOptionPane.INFORMATION_MESSAGE);
-            
-            // Launch appropriate dashboard based on user role
-            if (authenticatedUser.getRole() == Role.STUDENT) {
-                Student student = (Student) authenticatedUser;
-                new StudentDashboard(student).setVisible(true);
-            } else if (authenticatedUser.getRole() == Role.EDUCATOR) {
-                Educator educator = (Educator) authenticatedUser;
-                new EducatorDashboard(educator).setVisible(true);
+
+            // Log role and user id for debugging
+            System.out.println("User logged in: id=" + authenticatedUser.getUserId() + ", name=" + authenticatedUser.getName() + ", role=" + authenticatedUser.getRole());
+
+            // Launch appropriate dashboard based on user role on the EDT and handle errors
+            try {
+                if (authenticatedUser.getRole() == Role.STUDENT) {
+                    Student student = (Student) authenticatedUser;
+                    SwingUtilities.invokeLater(() -> new StudentDashboard(student).setVisible(true));
+                } else if (authenticatedUser.getRole() == Role.EDUCATOR) {
+                    Educator educator = (Educator) authenticatedUser;
+                    SwingUtilities.invokeLater(() -> new EducatorDashboard(educator).setVisible(true));
+                } else {
+                    // Unexpected role - show helpful message and log
+                    System.err.println("Unexpected role for user " + authenticatedUser.getEmail() + ": " + authenticatedUser.getRole());
+                    showMessage("Your account has an unsupported role. Please contact admin.", "Access Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // Close login window after launching dashboard
+                dispose();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Error opening dashboard: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
-            
-            // Close login window
-            dispose();
         } else {
             showMessage("Invalid email or password", "Login Failed", JOptionPane.ERROR_MESSAGE);
             passwordField.setText("");

@@ -8,7 +8,6 @@ import auth.*;
 import educator.*;
 import quiz.*;
 import student.*;
-import forum.*;
 
 public class DataStore {
 
@@ -38,6 +37,7 @@ public class DataStore {
                         "course_name TEXT NOT NULL, " +
                         "lesson_content TEXT, " +
                         "educator_id INTEGER, " +
+                        "time_limit INTEGER DEFAULT 0, " +
                         "FOREIGN KEY(educator_id) REFERENCES user(user_id))"; 
 
         String sqlQuestions = "CREATE TABLE IF NOT EXISTS Questions (" +
@@ -57,6 +57,8 @@ public class DataStore {
                         "totalScore INTEGER, " +
                         "totalQuestions INTEGER, " +
                         "percentage REAL, " +
+                        "quiz_type TEXT, " +
+                        "course_id INTEGER, " +
                         "attemptDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP)";
         
         String sqlStudent = "CREATE TABLE IF NOT EXISTS student (" +
@@ -110,6 +112,20 @@ public class DataStore {
             stmt.execute(sqlCourses);
             stmt.execute(sqlQuestions);
             stmt.execute(sqlScores);
+            stmt.execute(sqlAnnouncements);
+            stmt.execute(sqlThreads);
+            stmt.execute(sqlMessages);
+
+            // Create AttemptDetails table to store per-attempt, per-question student answers
+            String sqlAttemptDetails = "CREATE TABLE IF NOT EXISTS AttemptDetails (" +
+                                       "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                                       "attempt_id INTEGER, " +
+                                       "question_id INTEGER, " +
+                                       "selectedAnswer TEXT, " +
+                                       "FOREIGN KEY(attempt_id) REFERENCES QuizScores(id), " +
+                                       "FOREIGN KEY(question_id) REFERENCES Questions(id))";
+            stmt.execute(sqlAttemptDetails);
+
             stmt.execute(sqlStudent);
             stmt.execute(sqlEnrollments);
             stmt.execute(sqlTeacher);
@@ -289,10 +305,18 @@ while (rs.next()) {
                 String birthDate = rs.getString("birthDate");
                 String roleStr = rs.getString("role");
 
-                if (roleStr.equalsIgnoreCase("EDUCATOR")) {
+                // Debug log for role value
+                System.out.println("Login attempt: email=" + email + ", roleField='" + roleStr + "'");
+
+                // Accept common variants for educator role (EDUCATOR, Teacher, etc.)
+                if (roleStr != null && (roleStr.equalsIgnoreCase("EDUCATOR") || roleStr.equalsIgnoreCase("TEACHER") || roleStr.toUpperCase().contains("EDU"))) {
                     return new Educator(id, name, age, gender, birthDate, email, password);
-                } else {
+                } else if (roleStr != null && roleStr.equalsIgnoreCase("STUDENT")) {
                     return new Student(id, name, age, gender, birthDate, email, password);
+                } else {
+                    // Unknown role stored in DB — log and return null so login fails with clear console info
+                    System.out.println("Unknown role stored for user " + email + ": '" + roleStr + "'");
+                    return null;
                 }
             }
         } catch (SQLException e) {
@@ -438,7 +462,6 @@ public void insertQuestion(Question question, int educatorId, int courseId, Stri
         }
         return -1;
     }
-
     public void editAnnouncement(int id, String title, String content, int educatorId) {
         String sql = "UPDATE Announcements SET title = ?, content = ? WHERE id = ? AND educator_id = ?";
         try (Connection conn = connect();
@@ -453,7 +476,6 @@ public void insertQuestion(Question question, int educatorId, int courseId, Stri
             e.printStackTrace();
         }
     }
-
     public void deleteAnnouncement(int id, int educatorId) {
         String sql = "DELETE FROM Announcements WHERE id = ? AND educator_id = ?";
         try (Connection conn = connect();
@@ -466,7 +488,6 @@ public void insertQuestion(Question question, int educatorId, int courseId, Stri
             e.printStackTrace();
         }
     }
-
     public java.util.List<forum.Announcement> getAnnouncements() {
         java.util.List<forum.Announcement> list = new java.util.ArrayList<>();
         String sql = "SELECT A.id, A.title, A.content, A.educator_id, A.created_at, U.name as educator_name FROM Announcements A JOIN user U ON A.educator_id = U.user_id ORDER BY A.created_at DESC";

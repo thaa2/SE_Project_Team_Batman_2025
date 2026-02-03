@@ -17,6 +17,8 @@ public class RegisterGUI extends JFrame {
 
     public RegisterGUI() {
         dataStore = new DataStore();
+        // Ensure database tables exist when launching via GUI
+        dataStore.createTables();
         initializeUI();
     }
 
