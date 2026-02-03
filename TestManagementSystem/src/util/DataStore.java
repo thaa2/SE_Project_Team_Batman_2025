@@ -65,7 +65,7 @@ public class DataStore {
                         "FOREIGN KEY(educator_id) REFERENCES user(user_id))";
         
         String sqlStudent = "CREATE TABLE IF NOT EXISTS student (" +
-                        "student_id TEXT PRIMARY KEY, " +
+                        "student_id TEXT , " +
                         "user_id INTEGER UNIQUE, " +
                         "gpa REAL, " +
                         "major TEXT, " +
@@ -274,12 +274,14 @@ while (rs.next()) {
 
     public void role(String role, String name, String gender, int id) throws SQLException {
         if (role.equalsIgnoreCase("STUDENT")) {
-            String sql = "INSERT INTO student (user_id, major) VALUES (?, ?)";
+            // Insert both a student_id (text like S<id>) and the integer user_id
+            String sql = "INSERT INTO student (student_id, user_id, major) VALUES (?, ?, ?)";
             try (Connection connection = connect();
                 PreparedStatement pstmt = connection.prepareStatement(sql)) {
                 String s_id = "S" + id;
-                pstmt.setString(1, s_id);
-                pstmt.setString(2, "Undeclared");
+                pstmt.setString(1, s_id);   // student_id (TEXT)
+                pstmt.setInt(2, id);         // user_id (INTEGER FK)
+                pstmt.setString(3, "Undeclared");
                 pstmt.executeUpdate();
                 System.out.println("✓ Student saved!");
             } catch (SQLException e) {
@@ -338,12 +340,33 @@ while (rs.next()) {
                     int newId = rs.getInt(1); 
                     System.out.println("✓ Generated User ID: " + newId);
                     
-                    role(role, name, gender, newId); 
+                    try {
+                        role(role, name, gender, newId);
+                    } catch (SQLException re) {
+                        System.out.println("[ERROR] Role insertion failed for user id " + newId + ": " + re.getMessage());
+                        // Attempt to remove the inserted user to keep DB consistent
+                        try (PreparedStatement del = connection.prepareStatement("DELETE FROM user WHERE user_id = ?")) {
+                            del.setInt(1, newId);
+                            del.executeUpdate();
+                            System.out.println("[INFO] Rolled back inserted user id " + newId);
+                        } catch (SQLException de) {
+                            System.out.println("[ERROR] Failed to delete user after role insert failure: " + de.getMessage());
+                            de.printStackTrace();
+                        }
+                        // Rethrow so outer catch handles it (gives -1 or -2 depending)
+                        throw re;
+                    }
                     return newId;
                 }
             }
         } catch (SQLException e) {
-            System.out.println("Error inserting user: " + e.getMessage());
+            String msg = e.getMessage();
+            System.out.println("Error inserting user: " + msg);
+            if (msg != null && msg.contains("UNIQUE constraint failed")) {
+                System.out.println("[DEBUG] Detected UNIQUE constraint during InsertUser. Returning -2.");
+                e.printStackTrace();
+                return -2; // indicate duplicate at DB level
+            }
             e.printStackTrace();
         }
         return -1;
@@ -423,6 +446,26 @@ while (rs.next()) {
             e.printStackTrace();
         }
     }
+
+    // Check if an email is already registered (case-insensitive)
+    public boolean isEmailTaken(String email) {
+        String sql = "SELECT COUNT(*) AS cnt FROM user WHERE lower(email) = lower(?)";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, email);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                int cnt = rs.getInt("cnt");
+                System.out.println("[DEBUG] isEmailTaken('" + email + "') -> " + cnt);
+                return cnt > 0;
+            }
+        } catch (SQLException e) {
+            System.out.println("Error checking email existence: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
+
 public void insertQuestion(Question question, int educatorId, int courseId, String type) {
     String sql = "INSERT INTO Questions (text, options, correctAnswer, questionType, educator_id, course_id) VALUES (?, ?, ?, ?, ?, ?)";
     

@@ -224,7 +224,7 @@ public class RegisterGUI extends JFrame {
     private void handleRegistration() {
         // Validate inputs
         String name = nameField.getText().trim();
-        String email = emailField.getText().trim();
+        String email = emailField.getText().trim().toLowerCase();
         String ageText = ageField.getText().trim();
         Date birthDateValue = (Date) birthDateSpinner.getValue();
         if (birthDateValue.after(new Date())) {
@@ -282,8 +282,19 @@ public class RegisterGUI extends JFrame {
             selectedRole = "EDUCATOR";
         }
 
+        // Normalize email (case-insensitive) and check if already exists
+        email = email.toLowerCase();
+        if (dataStore.isEmailTaken(email)) {
+            JOptionPane.showMessageDialog(this, "This email is already registered. Please login or use a different email.", "Registration Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         // Save to database and get generated id
         int newId = dataStore.InsertUser(name, age, gender, birthDate, email, password, selectedRole);
+        if (newId == -2) {
+            JOptionPane.showMessageDialog(this, "This email is already registered. Please login or use a different email.", "Registration Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         if (newId <= 0) {
             JOptionPane.showMessageDialog(this, "Registration failed. Please try again.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
