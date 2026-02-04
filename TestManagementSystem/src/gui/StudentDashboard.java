@@ -18,6 +18,11 @@ public class StudentDashboard extends JFrame {
     private javax.swing.table.DefaultTableModel resultsTableModel;
     private javax.swing.JTable resultsTable;
 
+    // Dashboard stat labels (updated dynamically)
+    private javax.swing.JLabel lblQuizzesAttempted;
+    private javax.swing.JLabel lblAverageScore;
+    private javax.swing.JLabel lblCoursesEnrolled;
+
     public StudentDashboard(Student student) {
         this.student = student;
         this.dataStore = new DataStore();
@@ -190,9 +195,14 @@ public class StudentDashboard extends JFrame {
         // Statistics cards
         JPanel statsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
         statsPanel.setBackground(new Color(240, 242, 245));
-        statsPanel.add(createStatCard("Quizzes Attempted", "0", new Color(67, 97, 238)));
-        statsPanel.add(createStatCard("Average Score", "0%", new Color(103, 58, 183)));
-        statsPanel.add(createStatCard("Courses Enrolled", "0", new Color(76, 175, 80)));
+        // Stat labels (kept as fields so we can update dynamically)
+        lblQuizzesAttempted = new JLabel("0");
+        lblAverageScore = new JLabel("0%");
+        lblCoursesEnrolled = new JLabel("0");
+
+        statsPanel.add(createStatCard("Quizzes Attempted", lblQuizzesAttempted, new Color(67, 97, 238)));
+        statsPanel.add(createStatCard("Average Score", lblAverageScore, new Color(103, 58, 183)));
+        statsPanel.add(createStatCard("Courses Enrolled", lblCoursesEnrolled, new Color(76, 175, 80)));
         panel.add(statsPanel);
 
         panel.add(Box.createVerticalStrut(30));
@@ -228,7 +238,7 @@ public class StudentDashboard extends JFrame {
         return new JScrollPane(panel);
     }
 
-    private JPanel createStatCard(String title, String value, Color color) {
+    private JPanel createStatCard(String title, JLabel valueLabel, Color color) {
         JPanel card = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -249,7 +259,6 @@ public class StudentDashboard extends JFrame {
 
         card.add(Box.createVerticalStrut(10));
 
-        JLabel valueLabel = new JLabel(value);
         valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
         valueLabel.setForeground(color);
         card.add(valueLabel);
@@ -411,6 +420,53 @@ public class StudentDashboard extends JFrame {
             System.out.println("Error loading student results: " + e.getMessage());
             e.printStackTrace();
         }
+        // Also refresh the small dashboard stats after loading the results
+        refreshStats();
+    }
+
+    /**
+     * Refresh the dashboard statistics (quizzes attempted, average score, courses enrolled)
+     */
+    public void refreshStats() {
+        if (lblQuizzesAttempted == null) return;
+        try (Connection conn = DataStore.connect()) {
+            // 1) Quizzes attempted and average percentage
+            String q1 = "SELECT COUNT(*) AS cnt, COALESCE(AVG(percentage), 0) AS avgPerc FROM QuizScores WHERE studentName = ?";
+            try (PreparedStatement ps = conn.prepareStatement(q1)) {
+                ps.setString(1, student.getName());
+                try (ResultSet rs = ps.executeQuery()) {
+                    int count = rs.getInt("cnt");
+                    double avg = rs.getDouble("avgPerc");
+                    lblQuizzesAttempted.setText(String.valueOf(count));
+                    lblAverageScore.setText(String.format("%.0f%%", avg));
+                }
+            }
+
+            // 2) Courses enrolled (look up student numeric id and count enrollments)
+            int sid = dataStore.getStudentDbIdByUserId(student.getUserId());
+            int courses = 0;
+            if (sid > 0) {
+                try (PreparedStatement ps2 = conn.prepareStatement("SELECT COUNT(*) AS c FROM Enrollments WHERE student_id = ?")) {
+                    ps2.setInt(1, sid);
+                    try (ResultSet rs2 = ps2.executeQuery()) {
+                        courses = rs2.getInt("c");
+                    }
+                }
+            }
+            lblCoursesEnrolled.setText(String.valueOf(courses));
+
+        } catch (SQLException e) {
+            System.out.println("Error refreshing dashboard stats: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Convenience method to refresh both lists and stats (used after quiz submit or enrollment)
+     */
+    public void refreshData() {
+        loadStudentResults();
+        refreshStats();
     }
 
     private void openAttemptDetails(int attemptId) {
@@ -786,6 +842,8 @@ public class StudentDashboard extends JFrame {
                 conn.commit();
                 if (rows > 0) {
                     JOptionPane.showMessageDialog(this, "Enrolled successfully!");
+                    // Refresh UI to show updated courses count
+                    refreshData();
                 } else {
                     JOptionPane.showMessageDialog(this, "You are already enrolled in this course.");
                 }

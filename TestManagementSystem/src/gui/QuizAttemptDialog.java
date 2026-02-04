@@ -170,6 +170,10 @@ public class QuizAttemptDialog extends JDialog {
         } else {
             JOptionPane.showMessageDialog(this, "Time expired. Your quiz was auto-submitted. You scored " + score + " / " + questions.size());
         }
+        // Notify parent (if it's a StudentDashboard) so it can refresh its lists/stats
+        if (getParent() instanceof StudentDashboard) {
+            ((StudentDashboard) getParent()).refreshData();
+        }
         dispose();
     }
 

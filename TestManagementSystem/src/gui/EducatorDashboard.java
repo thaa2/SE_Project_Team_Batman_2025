@@ -236,10 +236,10 @@ public class EducatorDashboard extends JFrame {
         // Statistics cards
         JPanel statsPanel = new JPanel(new GridLayout(1, 4, 20, 0));
         statsPanel.setBackground(new Color(240, 242, 245));
-        statsPanel.add(createStatCard("Total Questions", String.valueOf(getTotalQuestions()), new Color(67, 97, 238)));
-        statsPanel.add(createStatCard("My Courses", String.valueOf(getTotalCourses()), new Color(103, 58, 183)));
-        statsPanel.add(createStatCard("Students Taught", String.valueOf(getStudentCount()), new Color(76, 175, 80)));
-        statsPanel.add(createStatCard("Quizzes Created", String.valueOf(getQuizCount()), new Color(255, 152, 0)));
+        statsPanel.add(createStatCard("Total Questions", new JLabel(String.valueOf(getTotalQuestions())), new Color(67, 97, 238)));
+        statsPanel.add(createStatCard("My Courses", new JLabel(String.valueOf(getTotalCourses())), new Color(103, 58, 183)));
+        statsPanel.add(createStatCard("Students Taught", new JLabel(String.valueOf(getStudentCount())), new Color(76, 175, 80)));
+        statsPanel.add(createStatCard("Quizzes Created", new JLabel(String.valueOf(getQuizCount())), new Color(255, 152, 0)));
         panel.add(statsPanel);
 
         panel.add(Box.createVerticalStrut(30));
@@ -275,7 +275,7 @@ public class EducatorDashboard extends JFrame {
         return new JScrollPane(panel);
     }
 
-    private JPanel createStatCard(String title, String value, Color color) {
+    private JPanel createStatCard(String title, JLabel valueLabel, Color color) {
         JPanel card = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -296,7 +296,6 @@ public class EducatorDashboard extends JFrame {
 
         card.add(Box.createVerticalStrut(10));
 
-        JLabel valueLabel = new JLabel(value);
         valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
         valueLabel.setForeground(color);
         card.add(valueLabel);
@@ -665,6 +664,9 @@ public class EducatorDashboard extends JFrame {
             quizService.saveQuestion(question, educator.getUserId(), courseId);
 
             JOptionPane.showMessageDialog(dialog, "MCQ Question saved successfully!");
+            // Refresh the questions table and analytics so educator sees new data immediately
+            if (questionsTableModel != null) loadQuestionsIntoTable(questionsTableModel);
+            refreshAnalytics();
             dialog.dispose();
         });
         panel.add(saveButton);
@@ -862,6 +864,7 @@ public class EducatorDashboard extends JFrame {
             if (ok) {
                 JOptionPane.showMessageDialog(this, "Question updated.");
                 loadQuestionsIntoTable(questionsTableModel);
+                refreshAnalytics();
                 dialog.dispose();
             } else {
                 JOptionPane.showMessageDialog(this, "Failed to update question.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -935,6 +938,8 @@ public class EducatorDashboard extends JFrame {
             quizService.saveQuestion(question, educator.getUserId(), courseId);
 
             JOptionPane.showMessageDialog(dialog, "True/False Question saved successfully!");
+            if (questionsTableModel != null) loadQuestionsIntoTable(questionsTableModel);
+            refreshAnalytics();
             dialog.dispose();
         });
         panel.add(saveButton);
@@ -1002,6 +1007,8 @@ public class EducatorDashboard extends JFrame {
             quizService.saveQuestion(question, educator.getUserId(), courseId);
 
             JOptionPane.showMessageDialog(dialog, "Short Answer Question saved successfully!");
+            if (questionsTableModel != null) loadQuestionsIntoTable(questionsTableModel);
+            refreshAnalytics();
             dialog.dispose();
         });
         panel.add(saveButton);
@@ -1364,10 +1371,17 @@ public class EducatorDashboard extends JFrame {
 
         JPanel statsPanel = new JPanel(new GridLayout(2, 2, 20, 20));
         statsPanel.setBackground(new Color(240, 242, 245));
-        statsPanel.add(createStatCard("Average Student Score", "75.5%", new Color(67, 97, 238)));
-        statsPanel.add(createStatCard("Total Attempts", "156", new Color(103, 58, 183)));
-        statsPanel.add(createStatCard("Highest Score", "98%", new Color(76, 175, 80)));
-        statsPanel.add(createStatCard("Lowest Score", "42%", new Color(255, 152, 0)));
+
+        // Create live labels for analytics and seed them with current computed values
+        analyticsAvgLabel = new JLabel(getAverageScoreForEducator());
+        analyticsAttemptsLabel = new JLabel(String.valueOf(getAttemptCountForEducator()));
+        analyticsMaxLabel = new JLabel(getMaxScoreForEducator());
+        analyticsMinLabel = new JLabel(getMinScoreForEducator());
+
+        statsPanel.add(createStatCard("Average Student Score", analyticsAvgLabel, new Color(67, 97, 238)));
+        statsPanel.add(createStatCard("Total Attempts", analyticsAttemptsLabel, new Color(103, 58, 183)));
+        statsPanel.add(createStatCard("Highest Score", analyticsMaxLabel, new Color(76, 175, 80)));
+        statsPanel.add(createStatCard("Lowest Score", analyticsMinLabel, new Color(255, 152, 0)));
 
         panel.add(statsPanel);
         panel.add(Box.createVerticalGlue());

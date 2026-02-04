@@ -64,8 +64,9 @@ public class DataStore {
                         "attemptDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
                         "FOREIGN KEY(educator_id) REFERENCES user(user_id))";
         
+        // Use an INTEGER primary key for student_id (was TEXT in older schema)
         String sqlStudent = "CREATE TABLE IF NOT EXISTS student (" +
-                        "student_id TEXT , " +
+                        "student_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                         "user_id INTEGER UNIQUE, " +
                         "gpa REAL, " +
                         "major TEXT, " +
@@ -131,6 +132,44 @@ public class DataStore {
 
             stmt.execute(sqlStudent);
             stmt.execute(sqlEnrollments);
+
+            // If an older student table used TEXT student_id (e.g. "S12"), migrate to
+            // an integer AUTOINCREMENT primary key to match Enrollments.student_id (INTEGER).
+            try (ResultSet pico = stmt.executeQuery("PRAGMA table_info('student')")) {
+                boolean needsMigration = false;
+                while (pico.next()) {
+                    String cname = pico.getString("name");
+                    String ctype = pico.getString("type");
+                    if ("student_id".equalsIgnoreCase(cname) && (ctype == null || !ctype.equalsIgnoreCase("INTEGER"))) {
+                        needsMigration = true; break;
+                    }
+                }
+                if (needsMigration) {
+                    System.out.println("Migrating 'student' table to use INTEGER PK (student_id)...");
+                    stmt.execute("PRAGMA foreign_keys = OFF");
+                    stmt.execute("BEGIN TRANSACTION");
+
+                    stmt.execute("CREATE TABLE IF NOT EXISTS student_new (student_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER UNIQUE, gpa REAL, major TEXT, FOREIGN KEY(user_id) REFERENCES user(user_id))");
+                    stmt.execute("INSERT INTO student_new (user_id, gpa, major) SELECT user_id, gpa, major FROM student");
+
+                    // Rebuild enrollments table and remap student ids via user_id
+                    stmt.execute("CREATE TABLE IF NOT EXISTS Enrollments_new (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER, course_id INTEGER, enrollment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(student_id) REFERENCES student(student_id), FOREIGN KEY(course_id) REFERENCES Courses(id))");
+                    stmt.execute("INSERT INTO Enrollments_new (id, student_id, course_id, enrollment_date) SELECT e.id, sn.student_id, e.course_id, e.enrollment_date FROM Enrollments e JOIN student s ON e.student_id = s.student_id JOIN student_new sn ON s.user_id = sn.user_id");
+
+                    stmt.execute("DROP TABLE Enrollments");
+                    stmt.execute("DROP TABLE student");
+                    stmt.execute("ALTER TABLE student_new RENAME TO student");
+                    stmt.execute("ALTER TABLE Enrollments_new RENAME TO Enrollments");
+
+                    stmt.execute("COMMIT");
+                    stmt.execute("PRAGMA foreign_keys = ON");
+                    System.out.println("Migration complete.");
+                }
+            } catch (SQLException e) {
+                System.out.println("Student table migration failed: " + e.getMessage());
+                e.printStackTrace();
+            }
+
             stmt.execute(sqlTeacher);
             stmt.execute(sqlAnnouncements);
             stmt.execute(sqlThreads);
@@ -274,13 +313,12 @@ while (rs.next()) {
 
     public void role(String role, String name, String gender, int id) throws SQLException {
         if (role.equalsIgnoreCase("STUDENT")) {
-            // Insert both a student_id (text like S<id>) and the integer user_id
-            String sql = "INSERT INTO student (student_id, user_id, major) VALUES (?, ?, ?)";
+            // Insert a student row; student_id will be generated as an INTEGER PK
+            String sql = "INSERT INTO student (user_id, gpa, major) VALUES (?, ?, ?)";
             try (Connection connection = connect();
                 PreparedStatement pstmt = connection.prepareStatement(sql)) {
-                String s_id = "S" + id;
-                pstmt.setString(1, s_id);   // student_id (TEXT)
-                pstmt.setInt(2, id);         // user_id (INTEGER FK)
+                pstmt.setInt(1, id);         // user_id (INTEGER FK)
+                pstmt.setDouble(2, 0.0);
                 pstmt.setString(3, "Undeclared");
                 pstmt.executeUpdate();
                 System.out.println("✓ Student saved!");
