@@ -819,11 +819,11 @@ public class StudentDashboard extends JFrame {
             }
 
             if (studentDbId == -1) {
-                String insertSql = "INSERT INTO student (user_id, gpa, major) VALUES (?, ?, ?)";
+                String insertSql = "INSERT INTO student (user_id, name, gender) VALUES (?, ?, ?)";
                 try (java.sql.PreparedStatement insertStmt = conn.prepareStatement(insertSql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
                     insertStmt.setInt(1, student.getUserId());
-                    insertStmt.setDouble(2, 0.0);
-                    insertStmt.setString(3, "Undeclared");
+                    insertStmt.setString(2, student.getName() != null ? student.getName() : "");
+                    insertStmt.setString(3, student.getGender() != null ? student.getGender() : "");
                     insertStmt.executeUpdate();
                     try (java.sql.ResultSet gk = insertStmt.getGeneratedKeys()) {
                         if (gk.next()) studentDbId = gk.getInt(1);

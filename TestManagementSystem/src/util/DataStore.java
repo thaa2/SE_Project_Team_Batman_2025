@@ -65,11 +65,12 @@ public class DataStore {
                         "FOREIGN KEY(educator_id) REFERENCES user(user_id))";
         
         // Use an INTEGER primary key for student_id (was TEXT in older schema)
+        // Student table: store a short copy of name/gender for quick display and joins
         String sqlStudent = "CREATE TABLE IF NOT EXISTS student (" +
                         "student_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                         "user_id INTEGER UNIQUE, " +
-                        "gpa REAL, " +
-                        "major TEXT, " +
+                        "name TEXT, " +
+                        "gender TEXT, " +
                         "FOREIGN KEY(user_id) REFERENCES user(user_id))";
         
         String sqlEnrollments = "CREATE TABLE IF NOT EXISTS Enrollments (" +
@@ -149,8 +150,10 @@ public class DataStore {
                     stmt.execute("PRAGMA foreign_keys = OFF");
                     stmt.execute("BEGIN TRANSACTION");
 
-                    stmt.execute("CREATE TABLE IF NOT EXISTS student_new (student_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER UNIQUE, gpa REAL, major TEXT, FOREIGN KEY(user_id) REFERENCES user(user_id))");
-                    stmt.execute("INSERT INTO student_new (user_id, gpa, major) SELECT user_id, gpa, major FROM student");
+                    // Build new student table that stores name & gender (sourced from user table)
+                    stmt.execute("CREATE TABLE IF NOT EXISTS student_new (student_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER UNIQUE, name TEXT, gender TEXT, FOREIGN KEY(user_id) REFERENCES user(user_id))");
+                    // Copy rows mapping user_id -> (name, gender) from user table when possible
+                    stmt.execute("INSERT INTO student_new (user_id, name, gender) SELECT s.user_id, u.name, u.gender FROM student s LEFT JOIN user u ON s.user_id = u.user_id");
 
                     // Rebuild enrollments table and remap student ids via user_id
                     stmt.execute("CREATE TABLE IF NOT EXISTS Enrollments_new (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER, course_id INTEGER, enrollment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(student_id) REFERENCES student(student_id), FOREIGN KEY(course_id) REFERENCES Courses(id))");
@@ -313,13 +316,13 @@ while (rs.next()) {
 
     public void role(String role, String name, String gender, int id) throws SQLException {
         if (role.equalsIgnoreCase("STUDENT")) {
-            // Insert a student row; student_id will be generated as an INTEGER PK
-            String sql = "INSERT INTO student (user_id, gpa, major) VALUES (?, ?, ?)";
+            // Insert a student row; store name & gender for convenience
+            String sql = "INSERT INTO student (user_id, name, gender) VALUES (?, ?, ?)";
             try (Connection connection = connect();
                 PreparedStatement pstmt = connection.prepareStatement(sql)) {
                 pstmt.setInt(1, id);         // user_id (INTEGER FK)
-                pstmt.setDouble(2, 0.0);
-                pstmt.setString(3, "Undeclared");
+                pstmt.setString(2, name != null ? name : "");
+                pstmt.setString(3, gender != null ? gender : "");
                 pstmt.executeUpdate();
                 System.out.println("✓ Student saved!");
             } catch (SQLException e) {

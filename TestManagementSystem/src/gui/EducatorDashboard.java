@@ -719,7 +719,9 @@ public class EducatorDashboard extends JFrame {
         panel.add(Box.createVerticalStrut(10));
 
         panel.add(new JLabel("Number of Options (3-5):"));
-        int defaultCount = q.getOptions() != null ? q.getOptions().length : 3;
+        // Some question types (TF) have 2 options. Ensure the spinner is initialized within the allowed bounds (3-5)
+        int rawCount = q.getOptions() != null ? q.getOptions().length : 3;
+        int defaultCount = Math.min(Math.max(rawCount, 3), 5); // clamp between 3 and 5
         JSpinner optionCountSpinner = new JSpinner(new SpinnerNumberModel(defaultCount, 3, 5, 1));
         panel.add(optionCountSpinner);
         panel.add(Box.createVerticalStrut(10));
@@ -1072,6 +1074,41 @@ public class EducatorDashboard extends JFrame {
         scrollPane.setPreferredSize(new Dimension(0, 400));
         panel.add(scrollPane);
 
+        panel.add(Box.createVerticalStrut(12));
+        JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        actionsPanel.setBackground(new Color(240, 242, 245));
+        JButton editCourseBtn = new JButton("Edit Selected");
+        JButton delCourseBtn = new JButton("Delete Selected");
+        actionsPanel.add(editCourseBtn);
+        actionsPanel.add(delCourseBtn);
+        panel.add(actionsPanel);
+
+        // Edit course behavior
+        editCourseBtn.addActionListener(e -> {
+            int r = coursesTable.getSelectedRow();
+            if (r < 0) { JOptionPane.showMessageDialog(this, "Please select a course to edit.", "No Selection", JOptionPane.WARNING_MESSAGE); return; }
+            int id = (int) coursesTableModel.getValueAt(r, 0);
+            openEditCourseDialog(id);
+        });
+
+        // Delete course behavior
+        delCourseBtn.addActionListener(e -> {
+            int r = coursesTable.getSelectedRow();
+            if (r < 0) { JOptionPane.showMessageDialog(this, "Please select a course to delete.", "No Selection", JOptionPane.WARNING_MESSAGE); return; }
+            int id = (int) coursesTableModel.getValueAt(r, 0);
+            int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete this course?","Confirm Delete", JOptionPane.YES_NO_OPTION);
+            if (confirm == JOptionPane.YES_OPTION) {
+                boolean ok = deleteCourseFromDatabase(id);
+                if (ok) {
+                    JOptionPane.showMessageDialog(this, "Course deleted.");
+                    loadCoursesIntoTable(coursesTableModel);
+                    refreshAnalytics();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Failed to delete course.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
         panel.add(Box.createVerticalGlue());
 
         return panel;
@@ -1164,6 +1201,185 @@ public class EducatorDashboard extends JFrame {
             System.err.println("SQLException saving course: " + e.getMessage());
             return false;
         }
+    }
+
+    // Update an existing course. Returns true on success. Includes a small retry when SQLITE_BUSY is encountered.
+    private boolean updateCourseInDatabase(int courseId, String courseName, String lessonContent, int timeLimitMinutes) {
+        String sql = "UPDATE Courses SET course_name = ?, lesson_content = ?, time_limit = ? WHERE id = ? AND educator_id = ?";
+        int maxAttempts = 3;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try (Connection conn = DataStore.connect();
+                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, courseName);
+                pstmt.setString(2, lessonContent);
+                pstmt.setInt(3, timeLimitMinutes);
+                pstmt.setInt(4, courseId);
+                pstmt.setInt(5, educator.getUserId());
+                int updated = pstmt.executeUpdate();
+                if (updated > 0) System.out.println("✓ Course updated (id=" + courseId + ")");
+                return updated > 0;
+            } catch (SQLException e) {
+                String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+                if (msg.contains("database is locked") || msg.contains("busy")) {
+                    if (attempt == maxAttempts) {
+                        e.printStackTrace();
+                        JOptionPane.showMessageDialog(this, "Error updating course: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+                        return false;
+                    }
+                    try { Thread.sleep(150); } catch (InterruptedException ignored) {}
+                    continue; // retry
+                }
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Error updating course: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private boolean deleteCourseFromDatabase(int courseId) {
+        String sql = "DELETE FROM Courses WHERE id = ? AND educator_id = ?";
+        try (Connection conn = DataStore.connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, courseId);
+            pstmt.setInt(2, educator.getUserId());
+            int deleted = pstmt.executeUpdate();
+            if (deleted > 0) System.out.println("✓ Course deleted (id=" + courseId + ")");
+            return deleted > 0;
+        } catch (SQLException e) {
+            // If delete failed due to foreign key constraint, offer cascade delete
+            String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            if (msg.contains("foreign key") || msg.contains("constraint")) {
+                int resp = JOptionPane.showConfirmDialog(this, "This course has related quiz attempts or questions and cannot be deleted directly.\nDo you want to delete the course along with ALL associated attempts and questions? This action is irreversible.", "Delete Course and Related Data?", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                if (resp == JOptionPane.YES_OPTION) {
+                    boolean ok = deleteCourseAndDependents(courseId);
+                    if (!ok) JOptionPane.showMessageDialog(this, "Failed to delete course and its dependents.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return ok;
+                }
+                return false;
+            }
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error deleting course: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+    }
+
+    // Deletes attempts details -> quiz scores -> questions -> course in a single transaction
+    private boolean deleteCourseAndDependents(int courseId) {
+        String delAttemptDetails = "DELETE FROM AttemptDetails WHERE attempt_id IN (SELECT id FROM QuizScores WHERE course_id = ?)";
+        String delQuizScores = "DELETE FROM QuizScores WHERE course_id = ?";
+        String delQuestions = "DELETE FROM Questions WHERE course_id = ?";
+        String delCourse = "DELETE FROM Courses WHERE id = ? AND educator_id = ?";
+
+        try (Connection conn = DataStore.connect()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement p1 = conn.prepareStatement(delAttemptDetails);
+                 PreparedStatement p2 = conn.prepareStatement(delQuizScores);
+                 PreparedStatement p3 = conn.prepareStatement(delQuestions);
+                 PreparedStatement p4 = conn.prepareStatement(delCourse)) {
+
+                p1.setInt(1, courseId); p1.executeUpdate();
+                p2.setInt(1, courseId); p2.executeUpdate();
+                p3.setInt(1, courseId); p3.executeUpdate();
+                p4.setInt(1, courseId); p4.setInt(2, educator.getUserId());
+                int deleted = p4.executeUpdate();
+
+                conn.commit();
+                if (deleted > 0) System.out.println("✓ Course and dependents deleted (id=" + courseId + ")");
+                return deleted > 0;
+            } catch (SQLException ex) {
+                conn.rollback();
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Error deleting course dependents: " + ex.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error deleting course: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+    }
+
+    private void openEditCourseDialog(int courseId) {
+        // Read course values and close DB resources BEFORE showing the modal dialog to avoid locking issues
+        String sql = "SELECT id, course_name, lesson_content, time_limit FROM Courses WHERE id = ? AND educator_id = ?";
+        String existingName = null;
+        String existingContent = null;
+        int existingTimeLimit = 0;
+        try (Connection conn = DataStore.connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, courseId);
+            pstmt.setInt(2, educator.getUserId());
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (!rs.next()) {
+                    JOptionPane.showMessageDialog(this, "Course not found or you do not have permission to edit it.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                existingName = rs.getString("course_name");
+                existingContent = rs.getString("lesson_content");
+                existingTimeLimit = rs.getInt("time_limit");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error loading course: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Build and display dialog using already retrieved values
+        JDialog dialog = new JDialog(this, "Edit Course", true);
+        dialog.setSize(450, 300);
+        dialog.setLocationRelativeTo(this);
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        panel.setBackground(Color.WHITE);
+
+        panel.add(new JLabel("Course Name:"));
+        JTextField courseNameField = new JTextField(existingName);
+        panel.add(courseNameField);
+        panel.add(Box.createVerticalStrut(15));
+
+        panel.add(new JLabel("Lesson Content:"));
+        JTextArea contentArea = new JTextArea(existingContent, 5, 30);
+        JScrollPane scrollPane = new JScrollPane(contentArea);
+        panel.add(scrollPane);
+        panel.add(Box.createVerticalStrut(15));
+
+        panel.add(new JLabel("Quiz Time Limit (minutes, 0 = no limit):"));
+        JSpinner timeSpinner = new JSpinner(new SpinnerNumberModel(existingTimeLimit, 0, 1440, 1));
+        panel.add(timeSpinner);
+        panel.add(Box.createVerticalStrut(15));
+
+        JButton saveButton = new JButton("Save Changes");
+        saveButton.setBackground(new Color(40, 167, 69));
+        saveButton.setForeground(Color.WHITE);
+        saveButton.setContentAreaFilled(false);
+        saveButton.setOpaque(true);
+        saveButton.setFocusPainted(false);
+        saveButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        saveButton.addActionListener(e -> {
+            String courseName = courseNameField.getText().trim();
+            String content = contentArea.getText().trim();
+            int timeLimit = (Integer) timeSpinner.getValue();
+            if (!courseName.isEmpty() && !content.isEmpty()) {
+                boolean ok = updateCourseInDatabase(courseId, courseName, content, timeLimit);
+                if (ok) {
+                    loadCoursesIntoTable(coursesTableModel);
+                    refreshAnalytics();
+                    JOptionPane.showMessageDialog(dialog, "Course updated successfully!");
+                    dialog.dispose();
+                } else {
+                    JOptionPane.showMessageDialog(dialog, "Failed to update course.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } else {
+                JOptionPane.showMessageDialog(dialog, "Please fill in all fields!", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        panel.add(saveButton);
+
+        dialog.add(panel);
+        dialog.setVisible(true);
     }
 
     private void loadCoursesIntoTable(DefaultTableModel model) {
